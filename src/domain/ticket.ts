@@ -5,7 +5,17 @@
 import { formatPrice } from '../menu';
 import { SALIDA_KINDS, type Corte, type Day } from './cash';
 import { changeDue, METHODS, methodLabel, payments } from './payment';
-import { activeLines, lineTotal, orderLabel, orderTotal, type KitchenBatch, type Order, type OrderLine } from './order';
+import {
+  activeLines,
+  CHANNELS,
+  isPlatform,
+  lineTotal,
+  orderLabel,
+  orderTotal,
+  type KitchenBatch,
+  type Order,
+  type OrderLine,
+} from './order';
 
 export const TICKET_WIDTH = 48;
 
@@ -113,7 +123,6 @@ export function billTicket(order: Order, now = Date.now(), width = TICKET_WIDTH)
   return out;
 }
 
-const CHANNEL_LABELS = { mesa: 'Mesas', llevar: 'Para llevar', whatsapp: 'WhatsApp' } as const;
 
 /** The corte as a printable report for the owner. */
 export function corteTicket(day: Day, c: Corte, now = Date.now(), width = TICKET_WIDTH): string[] {
@@ -129,12 +138,15 @@ export function corteTicket(day: Day, c: Corte, now = Date.now(), width = TICKET
     '',
     'POR FORMA DE PAGO',
   ];
-  for (const m of METHODS) out.push(money(`  ${m.label}`, c.byMethod[m.id].sales));
-  out.push('', 'POR CANAL');
-  for (const [channel, label] of Object.entries(CHANNEL_LABELS) as [keyof typeof CHANNEL_LABELS, string][]) {
-    const row = c.byChannel[channel];
-    out.push(money(`  ${label} (${row.orders})`, row.sales));
+  for (const m of METHODS) {
+    if (m.id !== 'plataforma' || c.byMethod[m.id].sales > 0) out.push(money(`  ${m.label}`, c.byMethod[m.id].sales));
   }
+  out.push('', 'POR CANAL');
+  for (const ch of CHANNELS) {
+    const row = c.byChannel[ch.id];
+    if (row.orders > 0 || !isPlatform(ch.id)) out.push(money(`  ${ch.label} (${row.orders})`, row.sales));
+  }
+  if (c.commissions > 0) out.push(money('  - Comisiones de apps', c.commissions), money('  = Venta neta', c.sales - c.commissions));
   out.push('', 'PROPINAS', money('  En efectivo', c.tipsCash), money('  Con tarjeta/transf.', c.tipsCard));
   out.push(rule(width), 'EFECTIVO EN CAJA', money('  Fondo', c.fondo), money('  + Ventas en efectivo', c.byMethod.efectivo.sales));
   out.push(money('  + Propinas en efectivo', c.tipsCash));

@@ -1,7 +1,7 @@
 // Sales reports over any date range. A bill counts on the day and hour it was
 // paid, like the corte.
 
-import { activeLines, lineTotal, orderTotal, type Channel, type Order } from './order';
+import { activeLines, commission, lineTotal, orderTotal, perChannel, type Channel, type Order } from './order';
 import { payments, type Method } from './payment';
 
 export interface Range {
@@ -21,6 +21,7 @@ export interface Report {
   orders: number;
   averageTicket: number;
   tips: number;
+  commissions: number;
   byDay: DaySales[];
   /** Sales per hour of the day, 0-23. */
   byHour: number[];
@@ -68,8 +69,8 @@ export function salesReport(orders: Order[], range: Range): Report {
   }
   const byHour = Array<number>(24).fill(0);
   const byWeekday = Array<number>(7).fill(0);
-  const byMethod: Record<Method, number> = { efectivo: 0, terminal: 0, transferencia: 0 };
-  const byChannel: Record<Channel, number> = { mesa: 0, llevar: 0, whatsapp: 0 };
+  const byMethod: Record<Method, number> = { efectivo: 0, terminal: 0, transferencia: 0, plataforma: 0 };
+  const byChannel = perChannel(() => 0);
   const items = new Map<string, { name: string; qty: number; total: number }>();
   let tips = 0;
 
@@ -102,6 +103,7 @@ export function salesReport(orders: Order[], range: Range): Report {
     orders: paid.length,
     averageTicket: paid.length ? Math.round(sales / paid.length) : 0,
     tips,
+    commissions: paid.reduce((sum, o) => sum + commission(o), 0),
     byDay: [...days.values()],
     byHour,
     byWeekday,

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { db } from '../db';
+import { CHANNELS, isPlatform } from '../domain/order';
 import { METHODS } from '../domain/payment';
 import { lastDays, month, salesReport, type Range } from '../domain/report';
 import { formatPrice } from '../menu';
@@ -82,13 +83,26 @@ export default function ReportScreen() {
             </article>
             <article className="product">
               <h2>Forma de pago</h2>
-              {METHODS.map((m) => (
+              {METHODS.filter((m) => m.id !== 'plataforma' || r.byMethod.plataforma > 0).map((m) => (
                 <Share key={m.id} label={m.label} value={r.byMethod[m.id]} total={r.sales} />
               ))}
               <h3>Canal</h3>
-              <Share label="Mesas" value={r.byChannel.mesa} total={r.sales} />
-              <Share label="Para llevar" value={r.byChannel.llevar} total={r.sales} />
-              <Share label="WhatsApp" value={r.byChannel.whatsapp} total={r.sales} />
+              {CHANNELS.filter((ch) => !isPlatform(ch.id) || r.byChannel[ch.id] > 0).map((ch) => (
+                <Share key={ch.id} label={ch.label} value={r.byChannel[ch.id]} total={r.sales} />
+              ))}
+              {r.commissions > 0 && (
+                <>
+                  <h3>Apps de reparto</h3>
+                  <div className="sum-row">
+                    <span>Comisiones</span>
+                    <span>{formatPrice(r.commissions)}</span>
+                  </div>
+                  <div className="sum-row">
+                    <span>Venta neta</span>
+                    <span>{formatPrice(r.sales - r.commissions)}</span>
+                  </div>
+                </>
+              )}
             </article>
           </div>
         </>
@@ -125,7 +139,7 @@ function Bars({ data }: { data: { label: string; sales: number }[] }) {
       {data.map((d, i) => (
         <div key={i} className="bar-col" title={`${d.label}: ${formatPrice(d.sales)}`}>
           <span className="bar-value">{d.sales > 0 && data.length <= 14 ? formatPrice(d.sales) : ''}</span>
-          <div className="bar" style={{ height: `${(d.sales / max) * 100}%` }} />
+          <div className="chart-bar" style={{ height: `${(d.sales / max) * 100}%` }} />
           <span className="bar-label">{data.length <= 14 || i % 5 === 0 ? d.label : ''}</span>
         </div>
       ))}

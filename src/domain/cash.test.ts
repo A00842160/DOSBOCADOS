@@ -92,3 +92,23 @@ describe('corte de caja', () => {
     expect(text).toMatch(/ABIERTOS SIN COBRAR \(1\)\s+\$30/);
   });
 });
+
+describe('delivery apps', () => {
+  it('keeps app orders out of the drawer and subtracts their commission', () => {
+    const d = day();
+    let uber: Order = addItem(newOrder('uber', { dayId: d.id, commissionRate: 30 }, 1100), kilo, campechano);
+    uber = addPayment(uber, { method: 'plataforma', amount: 550, tip: 20 });
+    const c = corte(d, [uber]);
+    expect(c.sales).toBe(550);
+    expect(c.byChannel.uber).toEqual({ orders: 1, sales: 550 });
+    expect(c.byMethod.plataforma.sales).toBe(550);
+    expect(c.commissions).toBe(165);
+    expect(c.tipsCard).toBe(20);
+    expect(c.expectedCash).toBe(500);
+    const text = corteTicket(d, c).join('\n');
+    expect(text).toMatch(/Uber Eats \(1\)\s+\$550/);
+    expect(text).toMatch(/Comisiones de apps\s+\$165/);
+    expect(text).toMatch(/Venta neta\s+\$385/);
+    expect(text).not.toMatch(/Rappi/);
+  });
+});

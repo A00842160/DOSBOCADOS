@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { currentDay, db, mutateDay, recentDays } from '../db';
 import { closeDay, corte, SALIDA_KINDS, type Day } from '../domain/cash';
+import { CHANNELS, isPlatform } from '../domain/order';
 import { METHODS } from '../domain/payment';
 import { corteTicket, formatDateTime } from '../domain/ticket';
 import { formatPrice } from '../menu';
@@ -62,13 +63,19 @@ export default function CorteScreen({ who }: { who: string }) {
           <Row label="Pedidos cobrados" text={String(c.orders)} />
           <Row label="Ticket promedio" value={c.averageTicket} />
           <h3>Por forma de pago</h3>
-          {METHODS.map((m) => (
+          {METHODS.filter((m) => m.id !== 'plataforma' || c.byMethod.plataforma.sales > 0).map((m) => (
             <Row key={m.id} label={m.label} value={c.byMethod[m.id].sales} />
           ))}
           <h3>Por canal</h3>
-          <Row label={`Mesas (${c.byChannel.mesa.orders})`} value={c.byChannel.mesa.sales} />
-          <Row label={`Para llevar (${c.byChannel.llevar.orders})`} value={c.byChannel.llevar.sales} />
-          <Row label={`WhatsApp (${c.byChannel.whatsapp.orders})`} value={c.byChannel.whatsapp.sales} />
+          {CHANNELS.filter((ch) => !isPlatform(ch.id) || c.byChannel[ch.id].orders > 0).map((ch) => (
+            <Row key={ch.id} label={`${ch.label} (${c.byChannel[ch.id].orders})`} value={c.byChannel[ch.id].sales} />
+          ))}
+          {c.commissions > 0 && (
+            <>
+              <Row label="− Comisiones de apps de reparto" value={c.commissions} />
+              <Row label="= Venta neta" value={c.sales - c.commissions} />
+            </>
+          )}
           <h3>Propinas</h3>
           <Row label="En efectivo (en la caja)" value={c.tipsCash} />
           <Row label="Con tarjeta o transferencia" value={c.tipsCard} />

@@ -3,15 +3,21 @@
 // Tips: with the Clip terminal the customer picks a percentage there, and the
 // waitress enters the same percentage here. Cash tips stay in the drawer.
 
-import { orderTotal, type Order } from './order';
+import { isPlatform, orderTotal, type Order } from './order';
 
-export type Method = 'efectivo' | 'transferencia' | 'terminal';
+export type Method = 'efectivo' | 'transferencia' | 'terminal' | 'plataforma';
 
 export const METHODS: { id: Method; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
   { id: 'terminal', label: 'Terminal (Clip)' },
   { id: 'transferencia', label: 'Transferencia' },
+  { id: 'plataforma', label: 'Pagado en la app' },
 ];
+
+/** Payment methods to offer: delivery app orders can also be paid inside the app. */
+export function methodsFor(order: Order): { id: Method; label: string }[] {
+  return isPlatform(order.channel) ? [METHODS[3], ...METHODS.slice(0, 3)] : METHODS.slice(0, 3);
+}
 
 export interface Payment {
   id: string;

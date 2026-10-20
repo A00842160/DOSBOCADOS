@@ -5,7 +5,32 @@
 import type { Product, Variant } from '../menu';
 import type { Payment } from './payment';
 
-export type Channel = 'mesa' | 'llevar' | 'whatsapp';
+export type Platform = 'uber' | 'rappi' | 'didi';
+export type Channel = 'mesa' | 'llevar' | 'whatsapp' | Platform;
+
+export const CHANNELS: { id: Channel; label: string }[] = [
+  { id: 'mesa', label: 'Mesas' },
+  { id: 'llevar', label: 'Para llevar' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'uber', label: 'Uber Eats' },
+  { id: 'rappi', label: 'Rappi' },
+  { id: 'didi', label: 'DiDi Food' },
+];
+
+export const PLATFORMS: Platform[] = ['uber', 'rappi', 'didi'];
+
+export function isPlatform(channel: Channel): channel is Platform {
+  return (PLATFORMS as Channel[]).includes(channel);
+}
+
+export function channelLabel(channel: Channel): string {
+  return CHANNELS.find((c) => c.id === channel)!.label;
+}
+
+/** A record with one zero entry per channel. */
+export function perChannel<T>(make: () => T): Record<Channel, T> {
+  return Object.fromEntries(CHANNELS.map((c) => [c.id, make()])) as Record<Channel, T>;
+}
 export type LineStatus = 'pendiente' | 'en-cocina' | 'salio';
 
 export interface OrderLine {
@@ -38,6 +63,8 @@ export interface Order {
   cancelledAt?: number;
   createdBy?: string;
   dayId?: string;
+  /** Delivery app commission in percent, fixed when the order was taken. */
+  commissionRate?: number;
   payments?: Payment[];
 }
 
@@ -128,13 +155,18 @@ export function itemCount(order: Order): number {
   return activeLines(order).reduce((sum, l) => sum + l.qty, 0);
 }
 
+/** What the delivery app keeps from this order. */
+export function commission(order: Order): number {
+  return order.commissionRate ? Math.round((orderTotal(order) * order.commissionRate) / 100) : 0;
+}
+
 export function isOpen(order: Order): boolean {
   return !order.closedAt && !order.cancelledAt;
 }
 
 export function orderLabel(order: Order): string {
   if (order.channel === 'mesa') return `Mesa ${order.table}`;
-  const kind = order.channel === 'whatsapp' ? 'WhatsApp' : 'Para llevar';
+  const kind = channelLabel(order.channel);
   return order.customerName ? `${kind} · ${order.customerName}` : kind;
 }
 

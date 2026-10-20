@@ -7,7 +7,7 @@ import {
   changeDue,
   equalPart,
   methodLabel,
-  METHODS,
+  methodsFor,
   paidAmount,
   payments,
   remaining,
@@ -36,7 +36,7 @@ function toPesos(text: string): number {
 
 export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   const order = useLiveQuery(() => db.orders.get(orderId), [orderId]);
-  const [method, setMethod] = useState<Method>('efectivo');
+  const [picked, setMethod] = useState<Method | null>(null);
   const [amountText, setAmountText] = useState<string | null>(null);
   const [tipPercent, setTipPercent] = useState<number | null>(0);
   const [tipText, setTipText] = useState('');
@@ -46,6 +46,8 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   const staff = useStaff();
 
   if (!order) return <main className="screen" />;
+  // A delivery app order starts on "Pagado en la app"; others start on cash.
+  const method = picked ?? methodsFor(order)[0].id;
 
   const left = remaining(order);
   const amount = amountText === null ? left : Math.min(toPesos(amountText), left);
@@ -125,8 +127,8 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
         </section>
 
         <section className="pay-form">
-          <div className="segmented">
-            {METHODS.map((m) => (
+          <div className={methodsFor(order).length > 3 ? 'segmented four' : 'segmented'}>
+            {methodsFor(order).map((m) => (
               <button
                 key={m.id}
                 className={m.id === method ? 'seg active' : 'seg'}

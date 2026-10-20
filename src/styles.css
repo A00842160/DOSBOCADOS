@@ -701,3 +701,97 @@ label {
   white-space: pre;
   overflow-x: auto;
 }
+
+/* Cobro */
+
+.pay-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.pay-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 380px;
+  flex-shrink: 0;
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.sum-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.3rem;
+}
+
+.sum-row.big {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.paid-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 1.1rem;
+}
+
+.pay-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.seg {
+  min-height: 72px;
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.seg.active {
+  background: var(--accent);
+}
+
+.inline-input {
+  width: 140px;
+  min-height: 52px;
+  margin: 0;
+}
+
+.hint,
+.muted {
+  color: var(--muted);
+}
+
+.hint {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.change {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #7bd88f;
+}
+
+.change.short {
+  color: #ff8a80;
+}

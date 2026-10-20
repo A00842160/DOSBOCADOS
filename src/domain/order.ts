@@ -3,6 +3,7 @@
 // cancelled until it leaves the kitchen; after that only the owner can cancel it.
 
 import type { Product, Variant } from '../menu';
+import type { Payment } from './payment';
 
 export type Channel = 'mesa' | 'llevar' | 'whatsapp';
 export type LineStatus = 'pendiente' | 'en-cocina' | 'salio';
@@ -37,6 +38,7 @@ export interface Order {
   cancelledAt?: number;
   createdBy?: string;
   dayId?: string;
+  payments?: Payment[];
 }
 
 export const TABLES = [1, 2, 3, 4, 5, 6];

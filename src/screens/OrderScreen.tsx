@@ -32,9 +32,10 @@ const STATUS_LABEL: Record<OrderLine['status'], string> = {
 interface Props {
   orderId: string;
   onBack: () => void;
+  onPay: () => void;
 }
 
-export default function OrderScreen({ orderId, onBack }: Props) {
+export default function OrderScreen({ orderId, onBack, onPay }: Props) {
   const order = useLiveQuery(() => db.orders.get(orderId), [orderId]);
   const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
   const [product, setProduct] = useState<Product | null>(null);
@@ -197,6 +198,9 @@ export default function OrderScreen({ orderId, onBack }: Props) {
               onClick={() => setTicket({ title: 'Ticket de cobro', lines: billTicket(order) })}
             >
               Ticket de cobro
+            </button>
+            <button className="secondary" disabled={orderTotal(order) === 0} onClick={onPay}>
+              Cobrar
             </button>
           </div>
         </aside>

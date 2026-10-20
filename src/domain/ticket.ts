@@ -3,6 +3,7 @@
 // 48 characters fits an 80 mm printer; 32 fits a 58 mm one.
 
 import { formatPrice } from '../menu';
+import { changeDue, methodLabel, payments } from './payment';
 import { activeLines, lineTotal, orderLabel, orderTotal, type KitchenBatch, type Order, type OrderLine } from './order';
 
 export const TICKET_WIDTH = 48;
@@ -76,12 +77,20 @@ export function kitchenTicket(order: Order, batch: KitchenBatch, now = Date.now(
   return out;
 }
 
-export interface BillExtras {
-  /** Payment lines appended under the total, e.g. method, tip and change. */
-  footer?: string[];
+function paymentLines(order: Order, width: number): string[] {
+  const out: string[] = [];
+  for (const p of payments(order)) {
+    out.push(spread(methodLabel(p.method), formatPrice(p.amount), width));
+    if (p.tip > 0) out.push(spread('  Propina', formatPrice(p.tip), width));
+    if (p.method === 'efectivo' && p.received !== undefined) {
+      out.push(spread('  Recibido', formatPrice(p.received), width));
+      out.push(spread('  Cambio', formatPrice(changeDue(p.amount, p.tip, p.received)), width));
+    }
+  }
+  return out;
 }
 
-export function billTicket(order: Order, now = Date.now(), extras: BillExtras = {}, width = TICKET_WIDTH): string[] {
+export function billTicket(order: Order, now = Date.now(), width = TICKET_WIDTH): string[] {
   const out = [
     center('DOSBOCADOS', width),
     center('Comida al carbón', width),
@@ -97,7 +106,8 @@ export function billTicket(order: Order, now = Date.now(), extras: BillExtras = 
     wrapped.forEach((text, i) => out.push(i === wrapped.length - 1 ? spread(text, price, width) : text));
   }
   out.push(rule(width), spread('TOTAL', formatPrice(orderTotal(order)), width));
-  if (extras.footer?.length) out.push(...extras.footer);
+  const paid = paymentLines(order, width);
+  if (paid.length > 0) out.push('', ...paid);
   out.push('', center('¡Gracias por su visita!', width));
   return out;
 }

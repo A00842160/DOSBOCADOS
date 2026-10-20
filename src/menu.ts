@@ -1,6 +1,7 @@
 // The menu is modelled as base products with priced variants, so the three
 // meat options (Asada / Chistorra / Campechano) don't become separate dishes.
-// Prices are whole Mexican pesos.
+// Prices are whole Mexican pesos. Sold-out state lives on the device (see
+// availability.ts) so the encargado can change it during service.
 
 export interface Variant {
   id: string;
@@ -8,7 +9,6 @@ export interface Variant {
   price: number;
   description?: string;
   favorite?: boolean;
-  available: boolean;
 }
 
 export interface Product {
@@ -47,12 +47,11 @@ function variants(productId: string, specs: VariantSpec[]): Variant[] {
     price,
     description,
     favorite,
-    available: true,
   }));
 }
 
 function single(productId: string, price: number): Variant[] {
-  return [{ id: `${productId}.unico`, name: '', price, available: true }];
+  return [{ id: `${productId}.unico`, name: '', price }];
 }
 
 function slug(text: string): string {

@@ -12,6 +12,7 @@ import {
   type Order,
   type OrderLine,
 } from '../domain/order';
+import { useSoldOut } from '../availability';
 import { CATEGORIES, formatPrice, productsIn, PRODUCTS, type Product } from '../menu';
 
 const STATUS_LABEL: Record<OrderLine['status'], string> = {
@@ -30,6 +31,7 @@ export default function OrderScreen({ orderId, onBack }: Props) {
   const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
   const [product, setProduct] = useState<Product | null>(null);
   const [editing, setEditing] = useState<OrderLine | null>(null);
+  const soldOut = useSoldOut();
 
   if (!order) return <main className="screen" />;
 
@@ -42,7 +44,7 @@ export default function OrderScreen({ orderId, onBack }: Props) {
 
   function pick(p: Product) {
     if (p.variants.length === 1) {
-      if (p.variants[0].available) update((o) => addItem(o, p, p.variants[0]));
+      if (!soldOut.has(p.variants[0].id)) update((o) => addItem(o, p, p.variants[0]));
     } else {
       setProduct(p);
     }
@@ -88,18 +90,19 @@ export default function OrderScreen({ orderId, onBack }: Props) {
               <div className="picker-grid">
                 {product.variants.map((v) => {
                   const qty = qtyOf(v.id);
+                  const available = !soldOut.has(v.id);
                   return (
                     <button
                       key={v.id}
                       className="pick"
-                      disabled={!v.available}
+                      disabled={!available}
                       onClick={() => update((o) => addItem(o, product, v))}
                     >
                       <span className="pick-name">
                         {v.favorite && <span className="favorite">★ </span>}
                         {v.name}
                       </span>
-                      <span className="pick-price">{v.available ? formatPrice(v.price) : 'Agotado'}</span>
+                      <span className="pick-price">{available ? formatPrice(v.price) : 'Agotado'}</span>
                       {qty > 0 && <span className="pick-qty">{qty}</span>}
                     </button>
                   );
@@ -109,7 +112,7 @@ export default function OrderScreen({ orderId, onBack }: Props) {
           ) : (
             <div className="picker-grid">
               {productsIn(categoryId).map((p) => {
-                const available = p.variants.some((v) => v.available);
+                const available = p.variants.some((v) => !soldOut.has(v.id));
                 const single = p.variants.length === 1;
                 const qty = single ? qtyOf(p.variants[0].id) : 0;
                 return (

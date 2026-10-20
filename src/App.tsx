@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import MenuScreen from './MenuScreen';
+import EncargadoScreen from './screens/EncargadoScreen';
 import OrderListScreen from './screens/OrderListScreen';
 import OrderScreen from './screens/OrderScreen';
 import TablesScreen from './screens/TablesScreen';
@@ -56,9 +57,7 @@ export default function App() {
         {route.name === 'menu' && <MenuScreen />}
         {route.name === 'mesas' && <TablesScreen navigate={setRoute} />}
         {route.name === 'lista' && <OrderListScreen channel={route.channel} navigate={setRoute} />}
-        {route.name === 'encargado' && (
-          <p className="placeholder">Esta pantalla se construye en los siguientes pasos.</p>
-        )}
+        {route.name === 'encargado' && <EncargadoScreen />}
       </main>
     );
   }

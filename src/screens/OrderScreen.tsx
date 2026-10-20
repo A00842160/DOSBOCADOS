@@ -19,7 +19,8 @@ import {
   type Order,
   type OrderLine,
 } from '../domain/order';
-import { loadAuth, pinMatches } from '../auth';
+import { loadAuth, verifyPin } from '../auth';
+import { settle } from '../domain/payment';
 import { useSoldOut } from '../availability';
 import { billTicket, kitchenTicket } from '../domain/ticket';
 import { findProduct, productsOf } from '../domain/menuEdit';
@@ -50,6 +51,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
   const [ticket, setTicket] = useState<{ title: string; lines: string[] } | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [ownerCancel, setOwnerCancel] = useState<OrderLine | null>(null);
+  const [settled, setSettled] = useState<{ refund: number } | null>(null);
 
   if (!order) return <main className="screen" />;
 
@@ -243,12 +245,37 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
               lengths={[6]}
               onCancel={() => setOwnerCancel(null)}
               onSubmit={async (pin) => {
-                if (!(await pinMatches(pin, (await loadAuth()).owner))) return 'PIN incorrecto';
-                await update((o) => ownerCancelLine(o, ownerCancel.id));
+                const error = await verifyPin(pin, (await loadAuth()).owner);
+                if (error) return error;
+                let result: ReturnType<typeof settle> | undefined;
+                await update((o) => {
+                  // What was already paid may now cover the bill: close it and say what to hand back.
+                  result = settle(ownerCancelLine(o, ownerCancel.id));
+                  return result.order;
+                });
                 setOwnerCancel(null);
+                if (result?.order.closedAt || result?.order.cancelledAt) setSettled({ refund: result.refund });
                 return null;
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {settled && (
+        <div className="overlay">
+          <div className="dialog">
+            <h2>La cuenta quedó pagada</h2>
+            <p className="product-description">
+              {settled.refund > 0
+                ? `Se pagó de más. Devuelve ${formatPrice(settled.refund)} al cliente.`
+                : 'Lo que ya se pagó cubre la cuenta.'}
+            </p>
+            <div className="form-actions">
+              <button className="primary" onClick={onBack}>
+                Listo
+              </button>
+            </div>
           </div>
         </div>
       )}

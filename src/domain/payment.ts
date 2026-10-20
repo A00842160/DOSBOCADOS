@@ -52,11 +52,14 @@ export function changeDue(amount: number, tip: number, received: number): number
   return received - amount - tip;
 }
 
-/** Splits what is left into equal parts, rounding the first part up to whole pesos. */
+/**
+ * One person's share when the whole bill is split equally, rounded up to whole
+ * pesos. It is the same share for every person, and the last one pays what is left.
+ */
 export function equalPart(order: Order, parts: number): number {
   const left = remaining(order);
   if (parts <= 1) return left;
-  return Math.ceil(left / parts);
+  return Math.min(left, Math.ceil(orderTotal(order) / parts));
 }
 
 export function addPayment(order: Order, payment: Omit<Payment, 'id' | 'at'>, now = Date.now()): Order {
@@ -68,6 +71,31 @@ export function addPayment(order: Order, payment: Omit<Payment, 'id' | 'at'>, no
     updatedAt: now,
   };
   return remaining(next) === 0 ? { ...next, closedAt: now } : next;
+}
+
+/**
+ * After the bill shrank (the owner took back a dish), closes it if what was paid
+ * already covers it. Anything paid beyond the new total is taken off the latest
+ * payments, so the corte expects what stays in the drawer; `refund` is what to
+ * hand back to the customer.
+ */
+export function settle(order: Order, now = Date.now()): { order: Order; refund: number } {
+  if (order.closedAt || !payments(order).length) return { order, refund: 0 };
+  const total = orderTotal(order);
+  const refund = Math.max(0, paidAmount(order) - total);
+  if (paidAmount(order) < total) return { order, refund: 0 };
+
+  let excess = refund;
+  const kept: Payment[] = [];
+  for (const p of [...payments(order)].reverse()) {
+    const cut = Math.min(excess, p.amount);
+    excess -= cut;
+    if (p.amount - cut > 0) kept.unshift({ ...p, amount: p.amount - cut });
+    else if (p.tip > 0) kept.unshift({ ...p, amount: 0 });
+  }
+  const next = { ...order, payments: kept, updatedAt: now };
+  // Everything was taken back and no tip stays: there is no sale left, so the order ends cancelled.
+  return { order: total > 0 || kept.length ? { ...next, closedAt: now } : { ...next, cancelledAt: now }, refund };
 }
 
 export function removePayment(order: Order, paymentId: string, now = Date.now()): Order {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pinMatches, setRolePin, useAuth, type Role } from '../auth';
+import { setRolePin, useAuth, verifyPin, type Role } from '../auth';
 import BackupScreen from './BackupScreen';
 import CashScreen from './CashScreen';
 import CorteScreen from './CorteScreen';
@@ -72,6 +72,12 @@ export default function EncargadoScreen() {
 
   return (
     <div className="admin">
+      <div className="admin-session">
+        <span className="role-chip">{roleLabel}</span>
+        <button className="secondary" onClick={() => setRole(null)}>
+          Cerrar sesión
+        </button>
+      </div>
       <nav className="tabs">
         {visible.map((s) => (
           <button key={s.id} className={s.id === section ? 'tab active' : 'tab'} onClick={() => setSection(s.id)}>
@@ -79,10 +85,6 @@ export default function EncargadoScreen() {
             {s.id === 'inventario' && low > 0 && <span className="count-badge">{low}</span>}
           </button>
         ))}
-        <span className="role-chip">{roleLabel}</span>
-        <button className="secondary" onClick={() => setRole(null)}>
-          Cerrar sesión
-        </button>
       </nav>
       {section === 'agotados' && <SoldOutScreen />}
       {section === 'caja' && <CashScreen who={who} />}
@@ -163,8 +165,8 @@ function Login({ hasEncargado, onRole }: { hasEncargado: boolean; onRole: (role:
         }
         lengths={[as === 'dueno' ? 6 : 4]}
         onSubmit={async (pin) => {
-          const ok = await pinMatches(pin, as === 'dueno' ? auth.owner : auth.encargado);
-          if (!ok) return 'PIN incorrecto';
+          const error = await verifyPin(pin, as === 'dueno' ? auth.owner : auth.encargado);
+          if (error) return error;
           onRole(as);
           return null;
         }}

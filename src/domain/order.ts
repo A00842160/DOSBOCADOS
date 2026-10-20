@@ -75,6 +75,9 @@ export const TABLES = [1, 2, 3, 4, 5, 6];
 
 export const QUICK_MODS = ['Sin cebolla', 'Sin guacamole', 'Sin cilantro', 'Sin salsa', 'Sin queso', 'Bien dorado'];
 
+/** Most of one dish a single line can hold; guards against a stuck + button. */
+export const MAX_QTY = 99;
+
 export function newId(): string {
   return crypto.randomUUID();
 }
@@ -92,6 +95,7 @@ export function addItem(order: Order, product: Product, variant: Variant, now = 
   const existing = order.lines.find(
     (l) => l.variantId === variant.id && l.status === 'pendiente' && !l.cancelled && l.mods.length === 0 && !l.note,
   );
+  if (existing && existing.qty >= MAX_QTY) return order;
   const lines = existing
     ? order.lines.map((l) => (l === existing ? { ...l, qty: l.qty + 1 } : l))
     : [
@@ -131,7 +135,7 @@ function updateLine(order: Order, lineId: string, change: (l: OrderLine) => Orde
 export function setQty(order: Order, lineId: string, qty: number, now = Date.now()): Order {
   const line = order.lines.find((l) => l.id === lineId);
   if (!line || !canEditLine(line)) return order;
-  if (qty > 0) return updateLine(order, lineId, (l) => ({ ...l, qty }), now);
+  if (qty > 0) return updateLine(order, lineId, (l) => ({ ...l, qty: Math.min(qty, MAX_QTY) }), now);
   if (line.status === 'pendiente') {
     return { ...order, lines: order.lines.filter((l) => l.id !== lineId), updatedAt: now };
   }
@@ -230,9 +234,12 @@ export function ownerCancelLine(order: Order, lineId: string, now = Date.now()):
   };
 }
 
-/** A whole order can be cancelled only while nothing has left the kitchen. */
+/**
+ * A whole order can be cancelled only while nothing has left the kitchen and
+ * nobody has paid part of it: that money is in the drawer and the corte expects it.
+ */
 export function canCancelOrder(order: Order): boolean {
-  return !order.lines.some((l) => l.status === 'salio' && !l.cancelled);
+  return !order.lines.some((l) => l.status === 'salio' && !l.cancelled) && !order.payments?.length;
 }
 
 export function cancelOrder(order: Order, now = Date.now()): Order {

@@ -47,6 +47,13 @@ export async function openOrders(): Promise<Order[]> {
   return all.filter((o) => !o.closedAt && !o.cancelledAt).sort((a, b) => a.createdAt - b.createdAt);
 }
 
+/** Thrown when a payment is attempted while no day is open. */
+export class CajaCerrada extends Error {
+  constructor() {
+    super('La caja no está abierta. El encargado la abre en Encargado › Caja antes de cobrar.');
+  }
+}
+
 /**
  * Applies a change to the latest stored copy of an order. Screens must use this
  * instead of saving the copy they rendered, so quick taps never overwrite each other.
@@ -56,9 +63,12 @@ export async function mutateOrder(orderId: string, change: (order: Order) => Ord
     const current = await db.orders.get(orderId);
     if (!current) return undefined;
     let next = change(current);
+    // Money can only come in while the caja is open, so every peso lands in a corte.
+    const newPayment = (next.payments?.length ?? 0) > (current.payments?.length ?? 0);
+    const day = newPayment || (next.closedAt && !current.closedAt) ? await currentDay() : undefined;
+    if (newPayment && !day) throw new CajaCerrada();
     // A bill counts for the day it was paid in, even if it was opened before.
     if (next.closedAt && !current.closedAt) {
-      const day = await currentDay();
       if (day) next = { ...next, dayId: day.id };
       await recordMovements(saleMovements(next, await loadRecipes(), next.closedAt));
     }

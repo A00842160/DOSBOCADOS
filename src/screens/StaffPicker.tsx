@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { staffForPin, useAuth, type StaffMember } from '../auth';
+import { useAuth, verifyPin, type StaffMember } from '../auth';
 import { useStaff } from '../staff';
 import PinPad from './PinPad';
 
@@ -31,9 +31,9 @@ export default function StaffPicker() {
                 lengths={[4]}
                 onCancel={() => setMember(null)}
                 onSubmit={async (pin) => {
-                  const found = await staffForPin(pin, auth, member.id);
-                  if (!found) return 'PIN incorrecto';
-                  staff.setName(found.name);
+                  const error = await verifyPin(pin, member);
+                  if (error) return error;
+                  staff.setName(member.name);
                   close();
                   return null;
                 }}

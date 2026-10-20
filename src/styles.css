@@ -1076,3 +1076,72 @@ label {
     display: none;
   }
 }
+
+/* Inventario */
+
+.supply.low {
+  outline: 2px solid #b3261e;
+}
+
+.supply-stock {
+  font-size: 1.5rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.supply .row-end {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bg);
+}
+
+.recipe-label {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.count-badge.muted-badge {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+select {
+  min-height: 60px;
+  padding: 0 12px;
+  border: 2px solid var(--surface);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.05rem;
+}
+
+.inv-table th,
+.inv-table td {
+  padding: 8px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--bg);
+}
+
+.inv-table th:first-child,
+.inv-table td:first-child {
+  text-align: left;
+}
+
+.inv-table th {
+  color: var(--muted);
+  font-weight: 600;
+}

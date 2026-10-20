@@ -3,6 +3,7 @@
 
 import Dexie, { type EntityTable } from 'dexie';
 import type { Day } from './domain/cash';
+import { applyMovements, saleMovements, type Movement, type Recipes, type Supply } from './domain/inventory';
 import type { Order } from './domain/order';
 
 export interface Setting {
@@ -14,6 +15,8 @@ class PosDatabase extends Dexie {
   orders!: EntityTable<Order, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
   days!: EntityTable<Day, 'id'>;
+  supplies!: EntityTable<Supply, 'id'>;
+  movements!: EntityTable<Movement, 'id'>;
 
   constructor() {
     super('dosbocados');
@@ -22,6 +25,7 @@ class PosDatabase extends Dexie {
       settings: 'key',
     });
     this.version(2).stores({ days: 'id, openedAt, closedAt' });
+    this.version(3).stores({ supplies: 'id', movements: 'id, supplyId, at, orderId' });
   }
 }
 
@@ -48,7 +52,7 @@ export async function openOrders(): Promise<Order[]> {
  * instead of saving the copy they rendered, so quick taps never overwrite each other.
  */
 export async function mutateOrder(orderId: string, change: (order: Order) => Order): Promise<Order | undefined> {
-  return db.transaction('rw', db.orders, db.days, async () => {
+  return db.transaction('rw', [db.orders, db.days, db.settings, db.supplies, db.movements], async () => {
     const current = await db.orders.get(orderId);
     if (!current) return undefined;
     let next = change(current);
@@ -56,6 +60,7 @@ export async function mutateOrder(orderId: string, change: (order: Order) => Ord
     if (next.closedAt && !current.closedAt) {
       const day = await currentDay();
       if (day) next = { ...next, dayId: day.id };
+      await recordMovements(saleMovements(next, await loadRecipes(), next.closedAt));
     }
     if (next !== current) await db.orders.put(next);
     return next;
@@ -95,5 +100,24 @@ export async function mutateDay(dayId: string, change: (day: Day) => Day): Promi
     const next = change(current);
     if (next !== current) await db.days.put(next);
     return next;
+  });
+}
+
+export const RECIPES_KEY = 'recetas';
+
+export async function loadRecipes(): Promise<Recipes> {
+  const row = await db.settings.get(RECIPES_KEY);
+  return (row?.value as Recipes | undefined) ?? {};
+}
+
+/** Saves movements and updates each supply's stock in the same transaction. */
+export async function recordMovements(movements: Movement[]): Promise<void> {
+  if (!movements.length) return;
+  await db.transaction('rw', db.supplies, db.movements, async () => {
+    const ids = [...new Set(movements.map((m) => m.supplyId))];
+    const supplies = (await db.supplies.bulkGet(ids)).filter((s): s is Supply => Boolean(s));
+    const known = movements.filter((m) => supplies.some((s) => s.id === m.supplyId));
+    await db.movements.bulkPut(known);
+    await db.supplies.bulkPut(applyMovements(supplies, known));
   });
 }

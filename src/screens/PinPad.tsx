@@ -7,11 +7,12 @@ interface Props {
   /** Resolves to an error message, or null when the PIN was accepted. */
   onSubmit: (pin: string) => Promise<string | null>;
   onCancel?: () => void;
+  hint?: string;
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 
-export default function PinPad({ title, lengths, onSubmit, onCancel }: Props) {
+export default function PinPad({ title, lengths, onSubmit, onCancel, hint }: Props) {
   const length = Math.max(...lengths);
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +43,9 @@ export default function PinPad({ title, lengths, onSubmit, onCancel }: Props) {
   return (
     <div className="pinpad">
       <h2>{title}</h2>
+      {hint && <p className="hint">{hint}</p>}
       <div className="pin-dots">
-        {Array.from({ length: Math.max(pin.length, Math.min(...lengths)) }, (_, i) => (
+        {Array.from({ length }, (_, i) => (
           <span key={i} className={i < pin.length ? 'dot on' : 'dot'} />
         ))}
       </div>

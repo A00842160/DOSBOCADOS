@@ -47,6 +47,7 @@ export default function EncargadoScreen() {
     return (
       <PinPad
         title="Escribe tu PIN"
+        hint="Encargado: 4 números. Dueño: 6 números."
         lengths={[4, 6]}
         onSubmit={async (pin) => {
           const found = await roleForPin(pin, auth);

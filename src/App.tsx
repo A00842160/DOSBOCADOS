@@ -15,7 +15,7 @@ const TITLES: Record<Screen, string> = {
   'para-llevar': 'Para llevar',
   whatsapp: 'WhatsApp',
   bebidas: 'Bebidas de hoy',
-  acceso: 'Encargado / Dueño',
+  acceso: 'Encargado',
 };
 
 export default function App() {
@@ -49,7 +49,7 @@ export default function App() {
         ))}
       </div>
       <button className="access" onClick={() => setScreen('acceso')}>
-        Encargado / Dueño
+        Encargado
       </button>
     </main>
   );

@@ -3,6 +3,7 @@ import MenuScreen from './MenuScreen';
 import EncargadoScreen from './screens/EncargadoScreen';
 import OrderListScreen from './screens/OrderListScreen';
 import OrderScreen from './screens/OrderScreen';
+import PaymentScreen from './screens/PaymentScreen';
 import TablesScreen from './screens/TablesScreen';
 import type { Channel } from './domain/order';
 
@@ -11,6 +12,7 @@ export type Route =
   | { name: 'mesas' }
   | { name: 'lista'; channel: Exclude<Channel, 'mesa'> }
   | { name: 'pedido'; orderId: string; back: Route }
+  | { name: 'cobro'; orderId: string; back: Route }
   | { name: 'menu' }
   | { name: 'encargado' };
 
@@ -42,7 +44,24 @@ export default function App() {
   const [route, setRoute] = useState<Route>({ name: 'inicio' });
 
   if (route.name === 'pedido') {
-    return <OrderScreen orderId={route.orderId} onBack={() => setRoute(route.back)} />;
+    return (
+      <OrderScreen
+        orderId={route.orderId}
+        onBack={() => setRoute(route.back)}
+        onPay={() => setRoute({ name: 'cobro', orderId: route.orderId, back: route })}
+      />
+    );
+  }
+
+  if (route.name === 'cobro') {
+    const pedido = route.back.name === 'pedido' ? route.back : null;
+    return (
+      <PaymentScreen
+        orderId={route.orderId}
+        onBack={() => setRoute(route.back)}
+        onDone={() => setRoute(pedido ? pedido.back : { name: 'inicio' })}
+      />
+    );
   }
 
   if (route.name !== 'inicio') {

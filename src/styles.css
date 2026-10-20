@@ -903,3 +903,69 @@ label {
   color: #7bd88f;
   font-size: 1.1rem;
 }
+
+/* Caja y corte */
+
+.salida-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.segmented.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.row-end {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.total-row {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.notice.warn {
+  background: #3a2a10;
+  color: #ffcc80;
+}
+
+.corte {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.corte-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.corte h3 {
+  margin: 16px 0 4px;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.corte label {
+  margin-top: 12px;
+}
+
+@media (max-width: 800px) {
+  .corte {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-notice {
+  margin-bottom: 16px;
+}
+
+.product .seg:not(.active) {
+  background: var(--bg);
+}

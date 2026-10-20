@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { roleForPin, setRolePin, useAuth, type Role } from '../auth';
+import CashScreen from './CashScreen';
+import CorteScreen from './CorteScreen';
 import PinPad from './PinPad';
 import SettingsScreen from './SettingsScreen';
 import SoldOutScreen from './SoldOutScreen';
+import { useStaff } from '../staff';
 
-type Section = 'agotados' | 'personal';
+type Section = 'agotados' | 'caja' | 'corte' | 'personal';
 
 const SECTIONS: { id: Section; label: string; roles: Role[] }[] = [
   { id: 'agotados', label: 'Agotados', roles: ['encargado', 'dueno'] },
+  { id: 'caja', label: 'Caja', roles: ['encargado', 'dueno'] },
+  { id: 'corte', label: 'Corte', roles: ['dueno'] },
   { id: 'personal', label: 'Personal y PINs', roles: ['dueno'] },
 ];
 
@@ -18,6 +23,7 @@ export default function EncargadoScreen() {
   const auth = useAuth();
   const [role, setRole] = useState<Role | null>(null);
   const [section, setSection] = useState<Section>('agotados');
+  const staff = useStaff();
 
   useEffect(() => {
     if (!role) return;
@@ -54,6 +60,8 @@ export default function EncargadoScreen() {
   }
 
   const visible = SECTIONS.filter((s) => s.roles.includes(role));
+  const roleLabel = role === 'dueno' ? 'Dueño' : 'Encargado';
+  const who = staff.name ? `${staff.name} (${roleLabel})` : roleLabel;
 
   return (
     <div className="admin">
@@ -63,12 +71,14 @@ export default function EncargadoScreen() {
             {s.label}
           </button>
         ))}
-        <span className="role-chip">{role === 'dueno' ? 'Dueño' : 'Encargado'}</span>
+        <span className="role-chip">{roleLabel}</span>
         <button className="secondary" onClick={() => setRole(null)}>
           Cerrar sesión
         </button>
       </nav>
       {section === 'agotados' && <SoldOutScreen />}
+      {section === 'caja' && <CashScreen who={who} />}
+      {section === 'corte' && role === 'dueno' && <CorteScreen who={who} />}
       {section === 'personal' && role === 'dueno' && <SettingsScreen />}
     </div>
   );

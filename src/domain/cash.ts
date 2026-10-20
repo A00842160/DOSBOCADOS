@@ -3,7 +3,7 @@
 // Expected cash = fondo + cash sales + cash tips - salidas. Card and transfer
 // tips never reach the drawer, so they are shown apart.
 
-import { activeLines, lineTotal, orderTotal, type Channel, type Order } from './order';
+import { activeLines, commission, lineTotal, orderTotal, perChannel, type Channel, type Order } from './order';
 import { payments, type Method } from './payment';
 
 export type SalidaKind = 'compra' | 'propinas' | 'ventas' | 'otro';
@@ -77,6 +77,8 @@ export interface Corte {
   items: ItemSale[];
   tipsCash: number;
   tipsCard: number;
+  /** What Uber Eats, Rappi and DiDi keep. */
+  commissions: number;
   salidas: number;
   salidasByKind: Record<SalidaKind, number>;
   expectedCash: number;
@@ -99,12 +101,9 @@ export function corte(day: Day, allOrders: Order[]): Corte {
     efectivo: { sales: 0, tips: 0 },
     terminal: { sales: 0, tips: 0 },
     transferencia: { sales: 0, tips: 0 },
+    plataforma: { sales: 0, tips: 0 },
   };
-  const byChannel: Corte['byChannel'] = {
-    mesa: { orders: 0, sales: 0 },
-    llevar: { orders: 0, sales: 0 },
-    whatsapp: { orders: 0, sales: 0 },
-  };
+  const byChannel: Corte['byChannel'] = perChannel(() => ({ orders: 0, sales: 0 }));
   const items = new Map<string, ItemSale>();
 
   for (const order of paid) {
@@ -139,7 +138,7 @@ export function corte(day: Day, allOrders: Order[]): Corte {
 
   const sales = paid.reduce((sum, o) => sum + orderTotal(o), 0);
   const tipsCash = byMethod.efectivo.tips;
-  const tipsCard = byMethod.terminal.tips + byMethod.transferencia.tips;
+  const tipsCard = byMethod.terminal.tips + byMethod.transferencia.tips + byMethod.plataforma.tips;
 
   return {
     fondo: day.fondo,
@@ -149,6 +148,7 @@ export function corte(day: Day, allOrders: Order[]): Corte {
     items: [...items.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name)),
     tipsCash,
     tipsCard,
+    commissions: paid.reduce((sum, o) => sum + commission(o), 0),
     salidas,
     salidasByKind,
     expectedCash: day.fondo + byMethod.efectivo.sales + tipsCash - salidas,

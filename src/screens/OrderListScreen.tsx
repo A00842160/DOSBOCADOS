@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import type { Navigate } from '../App';
 import { openOrders, saveOrder } from '../db';
-import { itemCount, newOrder, orderTotal, type Channel } from '../domain/order';
+import { loadCommissions } from '../commissions';
+import { isPlatform, itemCount, newOrder, orderTotal, type Channel } from '../domain/order';
 import { formatPrice } from '../menu';
 import { useStaff } from '../staff';
 
@@ -24,6 +25,7 @@ export default function OrderListScreen({ channel, navigate }: Props) {
       customerName: name.trim() || undefined,
       phone: phone.trim() || undefined,
       createdBy: staff.name ?? undefined,
+      commissionRate: isPlatform(channel) ? (await loadCommissions())[channel] : undefined,
     });
     await saveOrder(order);
     navigate({ name: 'pedido', orderId: order.id, back });
@@ -39,8 +41,13 @@ export default function OrderListScreen({ channel, navigate }: Props) {
         }}
       >
         <label>
-          Nombre del cliente
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Juan" />
+          {isPlatform(channel) ? 'Nombre o número de pedido de la app' : 'Nombre del cliente'}
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={isPlatform(channel) ? 'Ej. #4821 Juan' : 'Ej. Juan'}
+          />
         </label>
         {channel === 'whatsapp' && (
           <label>

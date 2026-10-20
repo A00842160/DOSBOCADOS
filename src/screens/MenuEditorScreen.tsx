@@ -12,6 +12,8 @@ import {
   type Menu,
 } from '../domain/menuEdit';
 import type { Product } from '../menu';
+import { setCommission, useCommissions } from '../commissions';
+import { channelLabel, PLATFORMS } from '../domain/order';
 import { editMenu, resetMenu, useMenu } from '../menuStore';
 
 /** Owner only: change prices, names and options, or add and remove dishes. */
@@ -22,6 +24,7 @@ export default function MenuEditorScreen() {
   const [price, setPriceText] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const category = menu.categories.find((c) => c.id === categoryId)!;
+  const commissions = useCommissions();
 
   return (
     <div className="menu">
@@ -62,6 +65,25 @@ export default function MenuEditorScreen() {
             </span>
           )}
         </div>
+
+        <article className="product">
+          <h2>Comisión de apps de reparto</h2>
+          <p className="product-description">
+            El porcentaje que se queda cada app. Se descuenta en el corte y en los reportes de los pedidos nuevos.
+          </p>
+          {PLATFORMS.map((p) => (
+            <div key={p} className="editor-row">
+              <span>{channelLabel(p)}</span>
+              <CommitInput
+                className="inline-input"
+                numeric
+                value={String(commissions[p])}
+                onCommit={(text) => setCommission(p, Math.min(100, Number(text || 0)))}
+              />
+              <span className="muted">%</span>
+            </div>
+          ))}
+        </article>
 
         {productsOf(menu, categoryId).map((p) => (
           <ProductEditor key={p.id} product={p} />

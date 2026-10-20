@@ -8,7 +8,7 @@ import OrderScreen from './screens/OrderScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import StaffPicker from './screens/StaffPicker';
 import TablesScreen from './screens/TablesScreen';
-import type { Channel } from './domain/order';
+import { channelLabel, PLATFORMS, type Channel } from './domain/order';
 
 export type Route =
   | { name: 'inicio' }
@@ -16,6 +16,7 @@ export type Route =
   | { name: 'lista'; channel: Exclude<Channel, 'mesa'> }
   | { name: 'pedido'; orderId: string; back: Route }
   | { name: 'cobro'; orderId: string; back: Route }
+  | { name: 'apps' }
   | { name: 'menu' }
   | { name: 'encargado' };
 
@@ -25,6 +26,7 @@ const HOME_TILES: { route: Route; label: string; hint: string }[] = [
   { route: { name: 'mesas' }, label: 'Mesas', hint: '6 mesas' },
   { route: { name: 'lista', channel: 'llevar' }, label: 'Para llevar', hint: 'Pedido en mostrador' },
   { route: { name: 'lista', channel: 'whatsapp' }, label: 'WhatsApp', hint: 'Pedido por mensaje' },
+  { route: { name: 'apps' }, label: 'Apps de reparto', hint: 'Uber Eats, Rappi, DiDi' },
   { route: { name: 'menu' }, label: 'Menú', hint: 'Platillos y precios' },
 ];
 
@@ -33,7 +35,9 @@ function title(route: Route): string {
     case 'mesas':
       return 'Mesas';
     case 'lista':
-      return route.channel === 'llevar' ? 'Para llevar' : 'WhatsApp';
+      return channelLabel(route.channel);
+    case 'apps':
+      return 'Apps de reparto';
     case 'menu':
       return 'Menú';
     case 'encargado':
@@ -78,6 +82,15 @@ export default function App() {
           <h1>{title(route)}</h1>
         </header>
         {route.name === 'menu' && <MenuScreen />}
+        {route.name === 'apps' && (
+          <div className="tables">
+            {PLATFORMS.map((p) => (
+              <button key={p} className="table-tile" onClick={() => setRoute({ name: 'lista', channel: p })}>
+                <span className="table-number">{channelLabel(p)}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {route.name === 'mesas' && <TablesScreen navigate={setRoute} />}
         {route.name === 'lista' && <OrderListScreen channel={route.channel} navigate={setRoute} />}
         {route.name === 'encargado' && <EncargadoScreen />}

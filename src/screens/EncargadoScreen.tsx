@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { roleForPin, setRolePin, useAuth, type Role } from '../auth';
+import { pinMatches, setRolePin, useAuth, type Role } from '../auth';
 import CashScreen from './CashScreen';
 import CorteScreen from './CorteScreen';
 import PinPad from './PinPad';
@@ -45,20 +45,11 @@ export default function EncargadoScreen() {
 
   if (!role) {
     return (
-      <PinPad
-        title="Escribe tu PIN"
-        hint={
-          auth.encargado
-            ? 'Encargado: 4 números. Dueño: 6 números.'
-            : 'Todavía no hay PIN de encargado. Entra con tu PIN de dueño (6 números) y ponlo en Personal y PINs.'
-        }
-        lengths={[4, 6]}
-        onSubmit={async (pin) => {
-          const found = await roleForPin(pin, auth);
-          if (!found) return 'PIN incorrecto';
-          setRole(found);
+      <Login
+        hasEncargado={Boolean(auth.encargado)}
+        onRole={(r) => {
+          setRole(r);
           setSection('agotados');
-          return null;
         }}
       />
     );
@@ -128,5 +119,40 @@ function OwnerSetup({ onDone }: { onDone: () => void }) {
       }}
       onCancel={() => setFirst(null)}
     />
+  );
+}
+
+/** Pick the role first, so an owner PIN that starts like the encargado PIN still works. */
+function Login({ hasEncargado, onRole }: { hasEncargado: boolean; onRole: (role: Role) => void }) {
+  const auth = useAuth();
+  const [as, setAs] = useState<Role>(hasEncargado ? 'encargado' : 'dueno');
+  if (!auth) return null;
+  return (
+    <div className="setup">
+      <div className="segmented two">
+        <button className={as === 'encargado' ? 'seg active' : 'seg'} onClick={() => setAs('encargado')}>
+          Encargado
+        </button>
+        <button className={as === 'dueno' ? 'seg active' : 'seg'} onClick={() => setAs('dueno')}>
+          Dueño
+        </button>
+      </div>
+      <PinPad
+        key={as}
+        title={as === 'dueno' ? 'PIN de dueño (6 números)' : 'PIN de encargado (4 números)'}
+        hint={
+          as === 'encargado' && !hasEncargado
+            ? 'Todavía no hay PIN de encargado. Entra como Dueño y ponlo en Personal y PINs.'
+            : undefined
+        }
+        lengths={[as === 'dueno' ? 6 : 4]}
+        onSubmit={async (pin) => {
+          const ok = await pinMatches(pin, as === 'dueno' ? auth.owner : auth.encargado);
+          if (!ok) return 'PIN incorrecto';
+          onRole(as);
+          return null;
+        }}
+      />
+    </div>
   );
 }

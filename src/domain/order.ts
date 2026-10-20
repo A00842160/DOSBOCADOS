@@ -50,6 +50,8 @@ export interface OrderLine {
   /** When it was sent to the kitchen and when it came out. */
   sentAt?: number;
   servedAt?: number;
+  /** How many the kitchen was last told about, so a change can say what it was before. */
+  sentQty?: number;
 }
 
 export interface Order {
@@ -181,6 +183,8 @@ export interface KitchenBatch {
   number: number;
   newLines: OrderLine[];
   changedLines: OrderLine[];
+  /** For changed lines, the quantity the kitchen had before, by line id. */
+  previousQty: Record<string, number>;
 }
 
 export function hasKitchenWork(order: Order): boolean {
@@ -192,9 +196,11 @@ export function sendToKitchen(order: Order, now = Date.now()): { order: Order; b
   const number = order.batches + 1;
   const newLines = order.lines.filter((l) => l.status === 'pendiente' && !l.cancelled);
   const changedLines = order.lines.filter((l) => l.changed);
+  const previousQty: Record<string, number> = {};
+  for (const l of changedLines) if (l.sentQty !== undefined) previousQty[l.id] = l.sentQty;
   const lines = order.lines.map((l) => {
-    if (newLines.includes(l)) return { ...l, status: 'en-cocina' as const, batch: number, sentAt: now };
-    if (changedLines.includes(l)) return { ...l, changed: false };
+    if (newLines.includes(l)) return { ...l, status: 'en-cocina' as const, batch: number, sentAt: now, sentQty: l.qty };
+    if (changedLines.includes(l)) return { ...l, changed: false, sentQty: l.qty };
     return l;
   });
   const sent = { ...order, lines, batches: number, updatedAt: now };
@@ -204,6 +210,7 @@ export function sendToKitchen(order: Order, now = Date.now()): { order: Order; b
       number,
       newLines: newLines.map((l) => sent.lines.find((x) => x.id === l.id)!),
       changedLines: changedLines.map((l) => sent.lines.find((x) => x.id === l.id)!),
+      previousQty,
     },
   };
 }

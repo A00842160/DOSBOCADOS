@@ -26,12 +26,12 @@ function scenario() {
   const abierto = addItem(newOrder('whatsapp', { dayId: d.id }, 1300), refresco, refresco.variants[0]);
   // Cancelled after reaching the kitchen.
   const cancelado = cancelOrder(sendToKitchen(addItem(newOrder('mesa', { table: 2, dayId: d.id }, 1400), refresco, refresco.variants[0])).order);
-  // Another day's order is ignored.
-  const otro = addPayment(addItem(newOrder('mesa', { table: 3, dayId: 'otro' }, 1500), refresco, refresco.variants[0]), {
-    method: 'efectivo',
-    amount: 30,
-    tip: 0,
-  });
+  // Another day's order, paid before this day opened, is ignored.
+  const otro = addPayment(
+    addItem(newOrder('mesa', { table: 3, dayId: 'otro' }, 500), refresco, refresco.variants[0]),
+    { method: 'efectivo', amount: 30, tip: 0 },
+    900,
+  );
   return { d, orders: [mesa, llevar, abierto, cancelado, otro] };
 }
 
@@ -89,7 +89,7 @@ describe('corte de caja', () => {
     expect(text).toMatch(/= Esperado\s+\$670/);
     expect(text).toMatch(/Diferencia\s+\$90/);
     expect(text).toMatch(/Tortillas\s+\$150/);
-    expect(text).toMatch(/ABIERTOS SIN COBRAR \(1\)\s+\$30/);
+    expect(text).toMatch(/FALTA COBRAR \(1\)\s+\$30/);
   });
 });
 

@@ -144,7 +144,7 @@ export default function App() {
           <span className="tile-hint">
             {rounds.length === 0
               ? 'Nada en espera'
-              : `${rounds.length} en espera${late ? ` · ${late} con más de ${LATE_MINUTES} min` : ''}`}
+              : `${rounds.length} en espera${late ? ` · ${late} con ${LATE_MINUTES} min o más` : ''}`}
           </span>
         </button>
       </div>

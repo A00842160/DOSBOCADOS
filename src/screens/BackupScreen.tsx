@@ -1,5 +1,7 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { restoreBackup, shareBackup, useLastBackup } from '../backup';
+import { currentDay, openOrders } from '../db';
 import { daysSince, parseBackup, summarize, type Backup } from '../domain/backup';
 
 const dateTime = new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeStyle: 'short' });
@@ -11,6 +13,12 @@ export default function BackupScreen() {
   const [message, setMessage] = useState<{ text: string; warn?: boolean } | null>(null);
   const [pending, setPending] = useState<Backup | null>(null);
   const days = daysSince(last);
+  // What would be lost right now, so the owner thinks twice in the middle of service.
+  const live = useLiveQuery(
+    async () => ({ open: (await openOrders()).filter((o) => o.lines.length > 0).length, dayOpen: Boolean(await currentDay()) }),
+    [],
+    { open: 0, dayOpen: false },
+  );
 
   const share = async () => {
     setBusy(true);
@@ -40,7 +48,9 @@ export default function BackupScreen() {
     setBusy(true);
     try {
       await restoreBackup(pending);
-      setMessage({ text: 'Listo, la información del respaldo ya está en esta tablet.' });
+      setMessage({
+        text: 'Listo, la información del respaldo ya está en esta tablet. Los PINs no vienen en el respaldo: revisa en Personal y PINs el del encargado y los de los meseros.',
+      });
     } catch {
       setMessage({ text: 'No se pudo restaurar. No se cambió nada.', warn: true });
     } finally {
@@ -94,6 +104,14 @@ export default function BackupScreen() {
               Respaldo del {dateTime.format(summary!.createdAt)}: {summary!.orders} pedidos, {summary!.days} días de caja,{' '}
               {summary!.supplies} insumos. Esto reemplaza todo lo que hay ahora en esta tablet.
             </p>
+            {(live.open > 0 || live.dayOpen) && (
+              <p className="notice warn">
+                Ojo: en esta tablet {live.dayOpen ? 'la caja está abierta' : ''}
+                {live.dayOpen && live.open > 0 ? ' y hay ' : live.open > 0 ? 'hay ' : ''}
+                {live.open > 0 ? `${live.open} ${live.open === 1 ? 'pedido abierto' : 'pedidos abiertos'}` : ''}. Si
+                restauras, se pierden y quedan como estaban en el respaldo.
+              </p>
+            )}
             <div className="form-actions start">
               <button className="secondary" disabled={busy} onClick={() => setPending(null)}>
                 Cancelar

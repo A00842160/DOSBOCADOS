@@ -1265,3 +1265,32 @@ select {
   opacity: 0;
   cursor: pointer;
 }
+
+/* Tablet held upright: categories become a row on top and the ticket goes below. */
+@media (orientation: portrait) and (max-width: 1000px) {
+  .order-layout {
+    flex-direction: column;
+  }
+
+  .order-layout .menu-categories {
+    flex-direction: row;
+    width: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+  }
+
+  .order-layout .category {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .order-layout .ticket {
+    width: auto;
+    max-height: 42vh;
+  }
+}

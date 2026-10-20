@@ -969,3 +969,7 @@ label {
 .product .seg:not(.active) {
   background: var(--bg);
 }
+
+.segmented.two {
+  grid-template-columns: repeat(2, 200px);
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { pinMatches, setRolePin, useAuth, type Role } from '../auth';
+import BackupScreen from './BackupScreen';
 import CashScreen from './CashScreen';
 import CorteScreen from './CorteScreen';
 import InventoryScreen from './InventoryScreen';
@@ -12,7 +13,7 @@ import { useStaff } from '../staff';
 import { isLow } from '../domain/inventory';
 import { useSupplies } from '../inventoryStore';
 
-type Section = 'agotados' | 'caja' | 'inventario' | 'corte' | 'reportes' | 'menu' | 'personal';
+type Section = 'agotados' | 'caja' | 'inventario' | 'corte' | 'reportes' | 'menu' | 'personal' | 'respaldo';
 
 const SECTIONS: { id: Section; label: string; roles: Role[] }[] = [
   { id: 'agotados', label: 'Agotados', roles: ['encargado', 'dueno'] },
@@ -22,6 +23,7 @@ const SECTIONS: { id: Section; label: string; roles: Role[] }[] = [
   { id: 'reportes', label: 'Reportes', roles: ['dueno'] },
   { id: 'menu', label: 'Menú y precios', roles: ['dueno'] },
   { id: 'personal', label: 'Personal y PINs', roles: ['dueno'] },
+  { id: 'respaldo', label: 'Respaldo', roles: ['dueno'] },
 ];
 
 /** The screen locks itself after this long without a touch. */
@@ -89,6 +91,7 @@ export default function EncargadoScreen() {
       {section === 'reportes' && role === 'dueno' && <ReportScreen />}
       {section === 'menu' && role === 'dueno' && <MenuEditorScreen />}
       {section === 'personal' && role === 'dueno' && <SettingsScreen />}
+      {section === 'respaldo' && role === 'dueno' && <BackupScreen />}
     </div>
   );
 }

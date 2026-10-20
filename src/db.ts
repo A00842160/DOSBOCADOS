@@ -36,6 +36,20 @@ export async function openOrders(): Promise<Order[]> {
   return all.filter((o) => !o.closedAt && !o.cancelledAt).sort((a, b) => a.createdAt - b.createdAt);
 }
 
+/**
+ * Applies a change to the latest stored copy of an order. Screens must use this
+ * instead of saving the copy they rendered, so quick taps never overwrite each other.
+ */
+export async function mutateOrder(orderId: string, change: (order: Order) => Order): Promise<Order | undefined> {
+  return db.transaction('rw', db.orders, async () => {
+    const current = await db.orders.get(orderId);
+    if (!current) return undefined;
+    const next = change(current);
+    if (next !== current) await db.orders.put(next);
+    return next;
+  });
+}
+
 /** Drops an order that was opened but never got any item. */
 export async function discardIfEmpty(orderId: string): Promise<void> {
   const order = await db.orders.get(orderId);

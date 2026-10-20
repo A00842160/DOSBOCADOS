@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { PRODUCTS } from '../menu';
-import { addItem, itemCount, newOrder, orderTotal, setNotes, setQty, type Order } from './order';
+import {
+  addItem,
+  cancelOrder,
+  canCancelOrder,
+  hasKitchenWork,
+  itemCount,
+  markServed,
+  newOrder,
+  orderTotal,
+  sendToKitchen,
+  setNotes,
+  setQty,
+  type Order,
+} from './order';
 
 const taco = PRODUCTS.find((p) => p.id === 'taco')!;
 const campechano = taco.variants.find((v) => v.name === 'Campechano')!;
@@ -50,5 +63,46 @@ describe('order', () => {
     o = setQty(o, id, 0);
     expect(o.lines[0]).toMatchObject({ qty: 1, mods: [], note: '' });
     expect(o.lines[0].cancelled).toBeUndefined();
+  });
+});
+
+describe('kitchen flow', () => {
+  it('sends pending lines as numbered batches', () => {
+    let o = addItem(newOrder('mesa', { table: 1 }), taco, asada);
+    const first = sendToKitchen(o);
+    o = first.order;
+    expect(first.batch.number).toBe(1);
+    expect(first.batch.newLines).toHaveLength(1);
+    expect(o.lines[0]).toMatchObject({ status: 'en-cocina', batch: 1 });
+    expect(hasKitchenWork(o)).toBe(false);
+
+    o = addItem(o, taco, campechano);
+    const second = sendToKitchen(o);
+    expect(second.batch.number).toBe(2);
+    expect(second.batch.newLines.map((l) => l.name)).toEqual(['Taco Campechano']);
+  });
+
+  it('reports changes to lines already in the kitchen', () => {
+    let o = sendToKitchen(addItem(newOrder('mesa', { table: 1 }), taco, asada)).order;
+    o = setNotes(o, o.lines[0].id, ['Sin cebolla'], '');
+    expect(hasKitchenWork(o)).toBe(true);
+    const { batch, order } = sendToKitchen(o);
+    expect(batch.newLines).toHaveLength(0);
+    expect(batch.changedLines[0].mods).toEqual(['Sin cebolla']);
+    expect(order.lines[0].changed).toBe(false);
+  });
+
+  it('locks lines once they are marked as served', () => {
+    let o = sendToKitchen(addItem(newOrder('mesa', { table: 1 }), taco, asada)).order;
+    o = markServed(o);
+    expect(o.lines[0].status).toBe('salio');
+    expect(canCancelOrder(o)).toBe(false);
+    expect(cancelOrder(o).cancelledAt).toBeUndefined();
+  });
+
+  it('cancels an order whose food is still in the kitchen', () => {
+    const o = cancelOrder(sendToKitchen(addItem(newOrder('llevar'), taco, asada)).order);
+    expect(o.cancelledAt).toBeDefined();
+    expect(o.lines[0]).toMatchObject({ cancelled: true, changed: true });
   });
 });

@@ -1,9 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { db, discardIfEmpty, saveOrder } from '../db';
+import { db, discardIfEmpty, mutateOrder } from '../db';
 import {
   addItem,
+  cancelOrder,
+  canCancelOrder,
   canEditLine,
+  hasInKitchen,
+  hasKitchenWork,
+  markServed,
+  sendToKitchen,
   orderLabel,
   orderTotal,
   QUICK_MODS,
@@ -13,7 +19,9 @@ import {
   type OrderLine,
 } from '../domain/order';
 import { useSoldOut } from '../availability';
+import { billTicket, kitchenTicket } from '../domain/ticket';
 import { CATEGORIES, formatPrice, productsIn, PRODUCTS, type Product } from '../menu';
+import TicketDialog from './TicketDialog';
 
 const STATUS_LABEL: Record<OrderLine['status'], string> = {
   pendiente: 'Por mandar',
@@ -32,13 +40,35 @@ export default function OrderScreen({ orderId, onBack }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [editing, setEditing] = useState<OrderLine | null>(null);
   const soldOut = useSoldOut();
+  const [ticket, setTicket] = useState<{ title: string; lines: string[] } | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   if (!order) return <main className="screen" />;
 
-  const update = (change: (o: Order) => Order) => saveOrder(change(order));
+  const update = (change: (o: Order) => Order) => mutateOrder(orderId, change);
 
   async function leave() {
     await discardIfEmpty(orderId);
+    onBack();
+  }
+
+  async function sendKitchen() {
+    let result: ReturnType<typeof sendToKitchen> | undefined;
+    await mutateOrder(orderId, (o) => {
+      result = sendToKitchen(o);
+      return result.order;
+    });
+    if (result) {
+      setTicket({
+        title: `Ticket de cocina · ronda ${result.batch.number}`,
+        lines: kitchenTicket(result.order, result.batch),
+      });
+    }
+  }
+
+  async function cancelWhole() {
+    await mutateOrder(orderId, cancelOrder);
+    setConfirmCancel(false);
     onBack();
   }
 
@@ -60,6 +90,11 @@ export default function OrderScreen({ orderId, onBack }: Props) {
           ← Volver
         </button>
         <h1>{orderLabel(order)}</h1>
+        {order.lines.length > 0 && canCancelOrder(order) && (
+          <button className="danger push-right" onClick={() => setConfirmCancel(true)}>
+            Cancelar pedido
+          </button>
+        )}
       </header>
 
       <div className="order-layout">
@@ -149,8 +184,42 @@ export default function OrderScreen({ orderId, onBack }: Props) {
             <span>Total</span>
             <span>{formatPrice(orderTotal(order))}</span>
           </div>
+          <div className="ticket-actions">
+            <button className="primary" disabled={!hasKitchenWork(order)} onClick={sendKitchen}>
+              Mandar a cocina
+            </button>
+            <button className="secondary" disabled={!hasInKitchen(order)} onClick={() => update(markServed)}>
+              Ya salió de cocina
+            </button>
+            <button
+              className="secondary"
+              disabled={orderTotal(order) === 0}
+              onClick={() => setTicket({ title: 'Ticket de cobro', lines: billTicket(order) })}
+            >
+              Ticket de cobro
+            </button>
+          </div>
         </aside>
       </div>
+
+      {ticket && <TicketDialog title={ticket.title} lines={ticket.lines} onClose={() => setTicket(null)} />}
+
+      {confirmCancel && (
+        <div className="overlay" onClick={() => setConfirmCancel(false)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>¿Cancelar todo el pedido de {orderLabel(order)}?</h2>
+            <p className="product-description">Si algo ya está en cocina, avísales que se canceló.</p>
+            <div className="form-actions">
+              <button className="secondary" onClick={() => setConfirmCancel(false)}>
+                No, regresar
+              </button>
+              <button className="danger" onClick={cancelWhole}>
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <NotesDialog

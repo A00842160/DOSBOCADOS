@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import MenuScreen from './MenuScreen';
 
-type Screen = 'inicio' | 'mesas' | 'para-llevar' | 'whatsapp' | 'bebidas' | 'menu' | 'acceso';
+type Screen = 'inicio' | 'mesas' | 'para-llevar' | 'whatsapp' | 'menu' | 'acceso';
 
 const MENU: { screen: Exclude<Screen, 'inicio'>; label: string; hint: string }[] = [
   { screen: 'mesas', label: 'Mesas', hint: '6 mesas' },
   { screen: 'para-llevar', label: 'Para llevar', hint: 'Pedido en mostrador' },
   { screen: 'whatsapp', label: 'WhatsApp', hint: 'Pedido por mensaje' },
-  { screen: 'bebidas', label: 'Bebidas de hoy', hint: 'Disponible / agotado' },
   { screen: 'menu', label: 'Menú', hint: 'Platillos y precios' },
 ];
 
@@ -16,7 +15,6 @@ const TITLES: Record<Screen, string> = {
   mesas: 'Mesas',
   'para-llevar': 'Para llevar',
   whatsapp: 'WhatsApp',
-  bebidas: 'Bebidas de hoy',
   menu: 'Menú',
   acceso: 'Encargado',
 };

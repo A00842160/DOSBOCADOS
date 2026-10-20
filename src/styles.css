@@ -1294,3 +1294,115 @@ select {
     max-height: 42vh;
   }
 }
+
+/* Phones (for showing the app around on an iPhone): smaller type, one column, and the page scrolls. */
+@media (max-width: 600px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .screen {
+    gap: 14px;
+    padding: 12px;
+  }
+
+  .bar {
+    gap: 10px;
+  }
+
+  .bar h1 {
+    font-size: 1.4rem;
+  }
+
+  .back {
+    min-height: 48px;
+    padding: 0 14px;
+    font-size: 1rem;
+  }
+
+  .grid,
+  .tables {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .tile {
+    min-height: 110px;
+    padding: 16px;
+  }
+
+  .tile-label {
+    font-size: 1.4rem;
+  }
+
+  .tile-hint {
+    font-size: 0.95rem;
+  }
+
+  .order-screen {
+    height: auto;
+    overflow: visible;
+  }
+
+  .menu {
+    flex-direction: column;
+  }
+
+  .menu-categories {
+    flex-direction: row;
+    width: auto;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .menu-categories .category {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .editor-row,
+  .staff-form {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .order-layout .picker {
+    overflow: visible;
+  }
+
+  .order-layout .ticket {
+    max-height: none;
+  }
+
+  .picker-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pick {
+    min-height: 84px;
+    padding: 12px;
+  }
+
+  .pay-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pay-summary {
+    width: auto;
+  }
+
+  .segmented,
+  .segmented.two,
+  .segmented.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pin-keys {
+    grid-template-columns: repeat(3, 76px);
+  }
+
+  .pin-key {
+    height: 64px;
+  }
+}

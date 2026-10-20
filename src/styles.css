@@ -1000,3 +1000,79 @@ label {
 .editor-row > span {
   flex: 1;
 }
+
+/* Reportes */
+
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+  height: 200px;
+  margin-top: 12px;
+}
+
+.bar-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bar {
+  width: 100%;
+  max-width: 48px;
+  min-height: 2px;
+  border-radius: 6px 6px 0 0;
+  background: var(--accent);
+}
+
+.bar-value,
+.bar-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .bar-value {
+    display: none;
+  }
+}

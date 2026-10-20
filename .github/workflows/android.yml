@@ -24,6 +24,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm test
+
       - name: Build web app and copy it into the Android project
         run: npm run android:sync
 

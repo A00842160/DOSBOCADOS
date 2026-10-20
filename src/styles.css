@@ -1,0 +1,107 @@
+:root {
+  --bg: #1c1410;
+  --surface: #2b201a;
+  --accent: #e8682a;
+  --text: #fff7f0;
+  --muted: #c9b8aa;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bar h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  flex: 1;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.tile:active,
+.access:active,
+.back:active {
+  transform: scale(0.98);
+  filter: brightness(1.2);
+}
+
+.tile-label {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.tile-hint {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.access {
+  align-self: flex-end;
+  min-height: 64px;
+  padding: 0 28px;
+  border-radius: 16px;
+  background: var(--accent);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.back {
+  min-height: 64px;
+  padding: 0 24px;
+  border-radius: 16px;
+  background: var(--surface);
+  font-size: 1.25rem;
+}
+
+.placeholder {
+  font-size: 1.4rem;
+  color: var(--muted);
+}

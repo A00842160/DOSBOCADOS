@@ -22,6 +22,7 @@ export interface Payment {
   /** Cash handed over by the customer; only for efectivo. */
   received?: number;
   at: number;
+  by?: string;
 }
 
 export function payments(order: Order): Payment[] {

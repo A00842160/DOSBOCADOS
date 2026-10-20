@@ -3,14 +3,16 @@ import type { Navigate } from '../App';
 import { openOrders, saveOrder } from '../db';
 import { itemCount, newOrder, orderTotal, TABLES } from '../domain/order';
 import { formatPrice } from '../menu';
+import { useStaff } from '../staff';
 
 export default function TablesScreen({ navigate }: { navigate: Navigate }) {
   const orders = useLiveQuery(openOrders, [], []);
+  const staff = useStaff();
 
   async function open(table: number) {
     let order = orders.find((o) => o.channel === 'mesa' && o.table === table);
     if (!order) {
-      order = newOrder('mesa', { table });
+      order = newOrder('mesa', { table, createdBy: staff.name ?? undefined });
       await saveOrder(order);
     }
     navigate({ name: 'pedido', orderId: order.id, back: { name: 'mesas' } });

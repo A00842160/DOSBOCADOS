@@ -4,6 +4,7 @@ import type { Navigate } from '../App';
 import { openOrders, saveOrder } from '../db';
 import { itemCount, newOrder, orderTotal, type Channel } from '../domain/order';
 import { formatPrice } from '../menu';
+import { useStaff } from '../staff';
 
 interface Props {
   channel: Exclude<Channel, 'mesa'>;
@@ -13,6 +14,7 @@ interface Props {
 export default function OrderListScreen({ channel, navigate }: Props) {
   const orders = useLiveQuery(openOrders, [], []).filter((o) => o.channel === channel && o.lines.length > 0);
   const [creating, setCreating] = useState(false);
+  const staff = useStaff();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const back = { name: 'lista', channel } as const;
@@ -21,6 +23,7 @@ export default function OrderListScreen({ channel, navigate }: Props) {
     const order = newOrder(channel, {
       customerName: name.trim() || undefined,
       phone: phone.trim() || undefined,
+      createdBy: staff.name ?? undefined,
     });
     await saveOrder(order);
     navigate({ name: 'pedido', orderId: order.id, back });

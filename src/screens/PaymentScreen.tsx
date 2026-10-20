@@ -17,6 +17,7 @@ import {
 } from '../domain/payment';
 import { billTicket } from '../domain/ticket';
 import { formatPrice } from '../menu';
+import { useStaff } from '../staff';
 import TicketDialog from './TicketDialog';
 
 const TIP_PERCENTS = [0, 10, 15, 20];
@@ -42,6 +43,7 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   const [receivedText, setReceivedText] = useState('');
   const [byItems, setByItems] = useState(false);
   const [showBill, setShowBill] = useState(false);
+  const staff = useStaff();
 
   if (!order) return <main className="screen" />;
 
@@ -67,6 +69,7 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
         amount,
         tip,
         received: method === 'efectivo' ? (receivedText === '' ? amount + tip : received) : undefined,
+        by: staff.name ?? undefined,
       }),
     );
     resetForm();

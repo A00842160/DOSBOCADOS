@@ -4,6 +4,7 @@ import EncargadoScreen from './screens/EncargadoScreen';
 import OrderListScreen from './screens/OrderListScreen';
 import OrderScreen from './screens/OrderScreen';
 import PaymentScreen from './screens/PaymentScreen';
+import StaffPicker from './screens/StaffPicker';
 import TablesScreen from './screens/TablesScreen';
 import type { Channel } from './domain/order';
 
@@ -85,6 +86,7 @@ export default function App() {
     <main className="screen">
       <header className="bar">
         <h1>DosBocados</h1>
+        <StaffPicker />
       </header>
       <div className="grid">
         {HOME_TILES.map((tile) => (

@@ -182,6 +182,15 @@ export function markServed(order: Order, now = Date.now()): Order {
   };
 }
 
+/** Owner-only: takes back a line even after it left the kitchen. */
+export function ownerCancelLine(order: Order, lineId: string, now = Date.now()): Order {
+  return {
+    ...order,
+    lines: order.lines.map((l) => (l.id === lineId ? { ...l, cancelled: true } : l)),
+    updatedAt: now,
+  };
+}
+
 /** A whole order can be cancelled only while nothing has left the kitchen. */
 export function canCancelOrder(order: Order): boolean {
   return !order.lines.some((l) => l.status === 'salio' && !l.cancelled);

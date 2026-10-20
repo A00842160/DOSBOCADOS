@@ -795,3 +795,111 @@ label {
 .change.short {
   color: #ff8a80;
 }
+
+/* PINs */
+
+.pinpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.pinpad h2 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 14px;
+}
+
+.dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+}
+
+.dot.on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.pin-error {
+  min-height: 1.4em;
+  margin: 0;
+  color: #ff8a80;
+  font-size: 1.1rem;
+}
+
+.pin-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 96px);
+  gap: 12px;
+}
+
+.pin-key {
+  height: 80px;
+  border-radius: 16px;
+  background: var(--surface);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.dialog .pin-key {
+  background: var(--bg);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-chip {
+  align-self: center;
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  font-weight: 700;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 820px;
+}
+
+.settings .paid-row {
+  margin-top: 8px;
+}
+
+.staff-form {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.staff-form input {
+  margin: 0;
+}
+
+.form-actions.start {
+  justify-content: flex-start;
+}
+
+.notice {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #173322;
+  color: #7bd88f;
+  font-size: 1.1rem;
+}

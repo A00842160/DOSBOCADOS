@@ -9,6 +9,7 @@ import {
   hasInKitchen,
   hasKitchenWork,
   markServed,
+  ownerCancelLine,
   sendToKitchen,
   orderLabel,
   orderTotal,
@@ -18,9 +19,11 @@ import {
   type Order,
   type OrderLine,
 } from '../domain/order';
+import { loadAuth, pinMatches } from '../auth';
 import { useSoldOut } from '../availability';
 import { billTicket, kitchenTicket } from '../domain/ticket';
 import { CATEGORIES, formatPrice, productsIn, PRODUCTS, type Product } from '../menu';
+import PinPad from './PinPad';
 import TicketDialog from './TicketDialog';
 
 const STATUS_LABEL: Record<OrderLine['status'], string> = {
@@ -43,6 +46,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
   const soldOut = useSoldOut();
   const [ticket, setTicket] = useState<{ title: string; lines: string[] } | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [ownerCancel, setOwnerCancel] = useState<OrderLine | null>(null);
 
   if (!order) return <main className="screen" />;
 
@@ -177,7 +181,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
                 key={line.id}
                 line={line}
                 onQty={(qty) => update((o) => setQty(o, line.id, qty))}
-                onEdit={() => setEditing(line)}
+                onEdit={() => (line.status === 'salio' ? setOwnerCancel(line) : setEditing(line))}
               />
             ))}
           </div>
@@ -225,6 +229,27 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
         </div>
       )}
 
+      {ownerCancel && (
+        <div className="overlay" onClick={() => setOwnerCancel(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="product-description">
+              {ownerCancel.name} ya salió de cocina. Solo el dueño puede cancelarlo.
+            </p>
+            <PinPad
+              title="PIN del dueño"
+              lengths={[6]}
+              onCancel={() => setOwnerCancel(null)}
+              onSubmit={async (pin) => {
+                if (!(await pinMatches(pin, (await loadAuth()).owner))) return 'PIN incorrecto';
+                await update((o) => ownerCancelLine(o, ownerCancel.id));
+                setOwnerCancel(null);
+                return null;
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {editing && (
         <NotesDialog
           line={editing}
@@ -243,7 +268,7 @@ function LineRow({ line, onQty, onEdit }: { line: OrderLine; onQty: (qty: number
   const editable = canEditLine(line);
   return (
     <div className={line.cancelled ? 'line cancelled' : 'line'}>
-      <button className="line-main" onClick={onEdit} disabled={!editable}>
+      <button className="line-main" onClick={onEdit} disabled={line.cancelled}>
         <span className="line-name">{line.name}</span>
         {(line.mods.length > 0 || line.note) && (
           <span className="line-notes">{[...line.mods, line.note].filter(Boolean).join(' · ')}</span>

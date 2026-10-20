@@ -8,11 +8,11 @@ import { activeLines, type Order } from './order';
 export type Unit = 'kg' | 'lt' | 'pza' | 'paq';
 
 /** Recipes are written in grams or millilitres for kilos and litres. */
-export const UNITS: { id: Unit; label: string; recipeLabel: string; factor: number }[] = [
-  { id: 'kg', label: 'kg', recipeLabel: 'g', factor: 1000 },
-  { id: 'lt', label: 'litros', recipeLabel: 'ml', factor: 1000 },
-  { id: 'pza', label: 'pzas', recipeLabel: 'pzas', factor: 1 },
-  { id: 'paq', label: 'paq.', recipeLabel: 'paq.', factor: 1 },
+export const UNITS: { id: Unit; label: string; single: string; recipeLabel: string; factor: number }[] = [
+  { id: 'kg', label: 'kg', single: 'kg', recipeLabel: 'g', factor: 1000 },
+  { id: 'lt', label: 'litros', single: 'litro', recipeLabel: 'ml', factor: 1000 },
+  { id: 'pza', label: 'pzas', single: 'pieza', recipeLabel: 'pzas', factor: 1 },
+  { id: 'paq', label: 'paq.', single: 'paquete', recipeLabel: 'paq.', factor: 1 },
 ];
 
 export function unitInfo(unit: Unit) {
@@ -26,6 +26,8 @@ export interface Supply {
   /** Warn when stock drops to this or below. */
   minimum: number;
   stock: number;
+  /** Pesos per unit, from the last purchase or set by hand. */
+  cost?: number;
 }
 
 /** Per menu variant: how much of each supply one of it uses, in the supply's unit. */
@@ -50,6 +52,8 @@ export interface Movement {
   orderId?: string;
   by?: string;
   note?: string;
+  /** What a purchase cost in total, in pesos. */
+  cost?: number;
 }
 
 /** Avoids 0.30000000000000004 after many small recipe amounts. */
@@ -94,6 +98,8 @@ export function isLow(supply: Supply): boolean {
 
 export interface SupplyUsage {
   bought: number;
+  /** Pesos spent on purchases. */
+  spent: number;
   sold: number;
   /** Merma plus count corrections, as a positive amount lost (negative if a count found more). */
   lost: number;
@@ -104,8 +110,11 @@ export interface SupplyUsage {
 export function usage(movements: Movement[], days: number): Record<string, SupplyUsage> {
   const out: Record<string, SupplyUsage> = {};
   for (const m of movements) {
-    const u = (out[m.supplyId] ??= { bought: 0, sold: 0, lost: 0, perDay: 0 });
-    if (m.kind === 'compra') u.bought = round(u.bought + m.qty);
+    const u = (out[m.supplyId] ??= { bought: 0, spent: 0, sold: 0, lost: 0, perDay: 0 });
+    if (m.kind === 'compra') {
+      u.bought = round(u.bought + m.qty);
+      u.spent += m.cost ?? 0;
+    }
     if (m.kind === 'venta') u.sold = round(u.sold - m.qty);
     if (m.kind === 'merma' || m.kind === 'conteo') u.lost = round(u.lost - m.qty);
   }
@@ -133,4 +142,56 @@ export function setRecipeAmount(recipes: Recipes, variantId: string, supplyId: s
 export function formatQty(qty: number, unit: Unit): string {
   const n = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(round(qty));
   return `${n} ${unitInfo(unit).label}`;
+}
+
+/** Pesos per unit paid in a purchase, rounded to cents. */
+export function unitCost(total: number, qty: number): number {
+  return Math.round((total / qty) * 100) / 100;
+}
+
+export interface DishCost {
+  /** Pesos of supplies one dish uses, at current costs. */
+  cost: number;
+  /** Supplies in the recipe that have no cost yet. */
+  missing: string[];
+}
+
+export function dishCost(recipe: Record<string, number> | undefined, supplies: Supply[]): DishCost | null {
+  if (!recipe) return null;
+  let cost = 0;
+  const missing: string[] = [];
+  for (const [supplyId, qty] of Object.entries(recipe)) {
+    const s = supplies.find((x) => x.id === supplyId);
+    if (!s) continue;
+    if (s.cost === undefined) missing.push(s.name);
+    else cost += qty * s.cost;
+  }
+  return { cost: Math.round(cost * 100) / 100, missing };
+}
+
+/** Share of the price that goes to supplies, as a whole percent. */
+export function costShare(cost: number, price: number): number {
+  return price > 0 ? Math.round((cost / price) * 100) : 0;
+}
+
+export interface FoodCost {
+  /** Supplies used by what was sold, at current costs. */
+  cost: number;
+  /** Sales of dishes that have a recipe with costs, the part `cost` covers. */
+  coveredSales: number;
+}
+
+/** Approximate cost of what paid orders sold, using today's supply costs. */
+export function foodCost(orders: Order[], recipes: Recipes, supplies: Supply[]): FoodCost {
+  let cost = 0;
+  let coveredSales = 0;
+  for (const order of orders) {
+    for (const line of activeLines(order)) {
+      const dish = dishCost(recipes[line.variantId], supplies);
+      if (!dish || dish.cost === 0) continue;
+      cost += dish.cost * line.qty;
+      coveredSales += line.unitPrice * line.qty;
+    }
+  }
+  return { cost: Math.round(cost), coveredSales };
 }

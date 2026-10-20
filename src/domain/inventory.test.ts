@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { PRODUCTS } from '../menu';
 import {
   applyMovements,
+  costShare,
+  dishCost,
+  foodCost,
+  unitCost,
   consumption,
   countMovement,
   daysLeft,
@@ -15,6 +19,7 @@ import {
   type Supply,
 } from './inventory';
 import { addItem, newOrder, setQty } from './order';
+import { addPayment } from './payment';
 
 const refresco = PRODUCTS.find((p) => p.id === 'refresco')!;
 const kilo = PRODUCTS.find((p) => p.id === 'kilo')!;
@@ -66,7 +71,7 @@ describe('inventory', () => {
       { id: '4', supplyId: 'carne', qty: -0.25, kind: 'conteo', at: 4 },
     ];
     const u = usage(moves, 7).carne;
-    expect(u).toEqual({ bought: 20, sold: 14, lost: 0.75, perDay: 2 });
+    expect(u).toEqual({ bought: 20, spent: 0, sold: 14, lost: 0.75, perDay: 2 });
     expect(daysLeft(carne, u.perDay)).toBe(5);
     expect(daysLeft(carne, 0)).toBeNull();
   });
@@ -82,5 +87,20 @@ describe('inventory', () => {
   it('formats amounts', () => {
     expect(formatQty(2.5, 'kg')).toBe('2.5 kg');
     expect(formatQty(12, 'pza')).toBe('12 pzas');
+  });
+
+  it('prices dishes from supply costs', () => {
+    const supplies = [{ ...carne, cost: 300 }, coca];
+    expect(unitCost(1500, 5)).toBe(300);
+    expect(dishCost(undefined, supplies)).toBeNull();
+    expect(dishCost({ carne: 0.5, coca: 1 }, supplies)).toEqual({ cost: 150, missing: ['Coca'] });
+    expect(costShare(150, 275)).toBe(55);
+
+    let o = addItem(newOrder('mesa'), kilo, kilo.variants[0]);
+    o = addItem(o, refresco, refresco.variants[0]);
+    o = addPayment(o, { method: 'efectivo', amount: 10_000, tip: 0 });
+    const withCoca = [{ ...carne, cost: 300 }, { ...coca, cost: 12 }];
+    expect(foodCost([o], recipes, withCoca)).toEqual({ cost: 312, coveredSales: kilo.variants[0].price + 30 });
+    expect(foodCost([o], recipes, supplies)).toEqual({ cost: 300, coveredSales: kilo.variants[0].price });
   });
 });

@@ -58,10 +58,13 @@ export function month(offset: number, now = Date.now()): Range {
   return { from, to };
 }
 
+/** Bills paid within the range. */
+export function paidIn(orders: Order[], range: Range): Order[] {
+  return orders.filter((o) => o.closedAt && !o.cancelledAt && o.closedAt >= range.from && o.closedAt < range.to);
+}
+
 export function salesReport(orders: Order[], range: Range): Report {
-  const paid = orders.filter(
-    (o) => o.closedAt && !o.cancelledAt && o.closedAt >= range.from && o.closedAt < range.to,
-  );
+  const paid = paidIn(orders, range);
 
   const days = new Map<number, DaySales>();
   for (let day = startOfDay(range.from); day < range.to; day = addDays(day, 1)) {

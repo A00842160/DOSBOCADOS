@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { currentDay, db } from './db';
+import { currentDay, db, openOrders } from './db';
+import { kitchenQueue, LATE_MINUTES } from './domain/kitchen';
 import { isLow } from './domain/inventory';
 import MenuScreen from './MenuScreen';
 import EncargadoScreen from './screens/EncargadoScreen';
+import KitchenScreen, { useNow } from './screens/KitchenScreen';
 import OrderListScreen from './screens/OrderListScreen';
 import OrderScreen from './screens/OrderScreen';
 import PaymentScreen from './screens/PaymentScreen';
@@ -19,6 +21,7 @@ export type Route =
   | { name: 'cobro'; orderId: string; back: Route }
   | { name: 'apps' }
   | { name: 'menu' }
+  | { name: 'cocina' }
   | { name: 'encargado' };
 
 export type Navigate = (route: Route) => void;
@@ -41,6 +44,8 @@ function title(route: Route): string {
       return 'Apps de reparto';
     case 'menu':
       return 'Menú';
+    case 'cocina':
+      return 'Cocina';
     case 'encargado':
       return 'Encargado';
     default:
@@ -51,6 +56,8 @@ function title(route: Route): string {
 export default function App() {
   const [route, setRoute] = useState<Route>({ name: 'inicio' });
   const dayOpen = useLiveQuery(async () => Boolean(await currentDay()), [], true);
+  const rounds = kitchenQueue(useLiveQuery(openOrders, [], []), useNow());
+  const late = rounds.filter((r) => r.minutes >= LATE_MINUTES).length;
   const low = useLiveQuery(async () => (await db.supplies.toArray()).filter(isLow).map((s) => s.name), [], []);
 
   if (route.name === 'pedido') {
@@ -84,6 +91,7 @@ export default function App() {
           <h1>{title(route)}</h1>
         </header>
         {route.name === 'menu' && <MenuScreen />}
+        {route.name === 'cocina' && <KitchenScreen navigate={setRoute} />}
         {route.name === 'apps' && (
           <div className="tables">
             {PLATFORMS.map((p) => (
@@ -119,6 +127,14 @@ export default function App() {
             <span className="tile-hint">{tile.hint}</span>
           </button>
         ))}
+        <button className={late ? 'tile kitchen-tile late' : 'tile kitchen-tile'} onClick={() => setRoute({ name: 'cocina' })}>
+          <span className="tile-label">Cocina</span>
+          <span className="tile-hint">
+            {rounds.length === 0
+              ? 'Nada en espera'
+              : `${rounds.length} en espera${late ? ` · ${late} con más de ${LATE_MINUTES} min` : ''}`}
+          </span>
+        </button>
       </div>
       <button className="access" onClick={() => setRoute({ name: 'encargado' })}>
         Encargado

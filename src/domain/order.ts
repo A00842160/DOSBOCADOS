@@ -47,6 +47,9 @@ export interface OrderLine {
   cancelled?: boolean;
   /** Changed after it was sent; the kitchen still has to be told. */
   changed?: boolean;
+  /** When it was sent to the kitchen and when it came out. */
+  sentAt?: number;
+  servedAt?: number;
 }
 
 export interface Order {
@@ -186,7 +189,7 @@ export function sendToKitchen(order: Order, now = Date.now()): { order: Order; b
   const newLines = order.lines.filter((l) => l.status === 'pendiente' && !l.cancelled);
   const changedLines = order.lines.filter((l) => l.changed);
   const lines = order.lines.map((l) => {
-    if (newLines.includes(l)) return { ...l, status: 'en-cocina' as const, batch: number };
+    if (newLines.includes(l)) return { ...l, status: 'en-cocina' as const, batch: number, sentAt: now };
     if (changedLines.includes(l)) return { ...l, changed: false };
     return l;
   });
@@ -205,11 +208,15 @@ export function hasInKitchen(order: Order): boolean {
   return order.lines.some((l) => l.status === 'en-cocina' && !l.cancelled);
 }
 
-/** The waitress picked the food up: those lines can no longer change. */
-export function markServed(order: Order, now = Date.now()): Order {
+/** The waitress picked the food up: those lines can no longer change. Without a round, all of them. */
+export function markServed(order: Order, now = Date.now(), batch?: number): Order {
   return {
     ...order,
-    lines: order.lines.map((l) => (l.status === 'en-cocina' && !l.cancelled ? { ...l, status: 'salio' as const } : l)),
+    lines: order.lines.map((l) =>
+      l.status === 'en-cocina' && !l.cancelled && (batch === undefined || (l.batch ?? 0) === batch)
+        ? { ...l, status: 'salio' as const, servedAt: now }
+        : l,
+    ),
     updatedAt: now,
   };
 }

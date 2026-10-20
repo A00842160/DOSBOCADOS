@@ -40,10 +40,11 @@ describe('menu', () => {
     expect(priceOf('tortilla-harina')).toBe(10);
     expect(priceOf('agua-natural')).toBe(25);
     expect(priceOf('agua-fresca', 'Horchata')).toBe(30);
+    expect(priceOf('refresco', 'Fresada Peñafiel')).toBe(30);
   });
 
-  it('lists all eight aguas frescas and both refrescos', () => {
-    expect(PRODUCTS.find((p) => p.id === 'agua-fresca')?.variants).toHaveLength(8);
-    expect(PRODUCTS.find((p) => p.id === 'refresco')?.variants).toHaveLength(2);
+  it('lists the five aguas frescas and six refrescos', () => {
+    expect(PRODUCTS.find((p) => p.id === 'agua-fresca')?.variants).toHaveLength(5);
+    expect(PRODUCTS.find((p) => p.id === 'refresco')?.variants).toHaveLength(6);
   });
 });

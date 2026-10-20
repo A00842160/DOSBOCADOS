@@ -166,11 +166,11 @@ export const PRODUCTS: Product[] = [
   product('extras', 'tortilla-maiz', 'Tortilla de maíz (5)', (id) => single(id, 15)),
   product('extras', 'salsa-extra', 'Salsa extra', (id) => single(id, 15)),
   product('bebidas', 'agua-natural', 'Agua natural', (id) => single(id, 25)),
-  product('bebidas', 'refresco', 'Refresco', (id) => variants(id, flavours(['Coca', 'Coca Zero'], 30))),
+  product('bebidas', 'refresco', 'Refresco', (id) => variants(id, flavours(['Coca', 'Coca Zero', 'Fresada Peñafiel', 'Piñada Peñafiel', 'Limonada Peñafiel', 'Naranjada Peñafiel'], 30))),
   product('bebidas', 'agua-fresca', 'Agua fresca', (id) =>
     variants(
       id,
-      flavours(['Piña fresa', 'Limonada', 'Naranjada', 'Maracuyá', 'Limón', 'Jamaica', 'Pepino-limón', 'Horchata'], 30),
+      flavours(['Maracuyá', 'Limón', 'Jamaica', 'Pepino-limón', 'Horchata'], 30),
     ),
   ),
 ];

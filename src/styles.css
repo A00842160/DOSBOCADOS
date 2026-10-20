@@ -652,3 +652,52 @@ label {
 .product .secondary {
   background: var(--bg);
 }
+
+.danger {
+  min-height: 60px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: #b3261e;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.push-right {
+  margin-left: auto;
+}
+
+.ticket-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.ticket-actions .primary {
+  grid-column: 1 / -1;
+  min-height: 72px;
+  font-size: 1.4rem;
+}
+
+.ticket-actions .secondary {
+  background: var(--bg);
+  font-size: 1.05rem;
+  padding: 0 12px;
+}
+
+.ticket-dialog {
+  width: min(720px, 100%);
+}
+
+.paper {
+  margin: 0;
+  padding: 20px;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #1c1410;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: pre;
+  overflow-x: auto;
+}

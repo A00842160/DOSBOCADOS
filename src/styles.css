@@ -973,3 +973,30 @@ label {
 .segmented.two {
   grid-template-columns: repeat(2, 200px);
 }
+
+/* Menú y precios */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editor input {
+  margin: 0;
+}
+
+.editor-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-row > span {
+  flex: 1;
+}

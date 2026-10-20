@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { pinMatches, setRolePin, useAuth, type Role } from '../auth';
 import CashScreen from './CashScreen';
 import CorteScreen from './CorteScreen';
+import MenuEditorScreen from './MenuEditorScreen';
 import PinPad from './PinPad';
 import SettingsScreen from './SettingsScreen';
 import SoldOutScreen from './SoldOutScreen';
 import { useStaff } from '../staff';
 
-type Section = 'agotados' | 'caja' | 'corte' | 'personal';
+type Section = 'agotados' | 'caja' | 'corte' | 'menu' | 'personal';
 
 const SECTIONS: { id: Section; label: string; roles: Role[] }[] = [
   { id: 'agotados', label: 'Agotados', roles: ['encargado', 'dueno'] },
   { id: 'caja', label: 'Caja', roles: ['encargado', 'dueno'] },
   { id: 'corte', label: 'Corte', roles: ['dueno'] },
+  { id: 'menu', label: 'Menú y precios', roles: ['dueno'] },
   { id: 'personal', label: 'Personal y PINs', roles: ['dueno'] },
 ];
 
@@ -75,6 +77,7 @@ export default function EncargadoScreen() {
       {section === 'agotados' && <SoldOutScreen />}
       {section === 'caja' && <CashScreen who={who} />}
       {section === 'corte' && role === 'dueno' && <CorteScreen who={who} />}
+      {section === 'menu' && role === 'dueno' && <MenuEditorScreen />}
       {section === 'personal' && role === 'dueno' && <SettingsScreen />}
     </div>
   );

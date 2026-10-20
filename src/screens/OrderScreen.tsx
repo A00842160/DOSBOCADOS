@@ -22,7 +22,9 @@ import {
 import { loadAuth, pinMatches } from '../auth';
 import { useSoldOut } from '../availability';
 import { billTicket, kitchenTicket } from '../domain/ticket';
-import { CATEGORIES, formatPrice, productsIn, PRODUCTS, type Product } from '../menu';
+import { findProduct, productsOf } from '../domain/menuEdit';
+import { formatPrice, type Product } from '../menu';
+import { useMenu } from '../menuStore';
 import PinPad from './PinPad';
 import TicketDialog from './TicketDialog';
 
@@ -40,7 +42,8 @@ interface Props {
 
 export default function OrderScreen({ orderId, onBack, onPay }: Props) {
   const order = useLiveQuery(() => db.orders.get(orderId), [orderId]);
-  const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
+  const menu = useMenu();
+  const [categoryId, setCategoryId] = useState(menu.categories[0].id);
   const [product, setProduct] = useState<Product | null>(null);
   const [editing, setEditing] = useState<OrderLine | null>(null);
   const soldOut = useSoldOut();
@@ -104,7 +107,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
 
       <div className="order-layout">
         <nav className="menu-categories">
-          {CATEGORIES.map((c) => (
+          {menu.categories.map((c) => (
             <button
               key={c.id}
               className={c.id === categoryId && !product ? 'category active' : 'category'}
@@ -123,7 +126,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
             <>
               <div className="picker-head">
                 <button className="secondary" onClick={() => setProduct(null)}>
-                  ← {CATEGORIES.find((c) => c.id === product.categoryId)?.name}
+                  ← {menu.categories.find((c) => c.id === product.categoryId)?.name}
                 </button>
                 <h2>{product.name}</h2>
               </div>
@@ -151,7 +154,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
             </>
           ) : (
             <div className="picker-grid">
-              {productsIn(categoryId).map((p) => {
+              {productsOf(menu, categoryId).map((p) => {
                 const available = p.variants.some((v) => !soldOut.has(v.id));
                 const single = p.variants.length === 1;
                 const qty = single ? qtyOf(p.variants[0].id) : 0;
@@ -306,7 +309,7 @@ function NotesDialog({
 }) {
   const [mods, setMods] = useState(line.mods);
   const [note, setNote] = useState(line.note);
-  const product = PRODUCTS.find((p) => p.id === line.productId);
+  const product = findProduct(useMenu(), line.productId);
 
   const toggle = (mod: string) => setMods((m) => (m.includes(mod) ? m.filter((x) => x !== mod) : [...m, mod]));
 

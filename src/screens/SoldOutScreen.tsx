@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { clearSoldOut, setSoldOut, useSoldOut } from '../availability';
-import { CATEGORIES, productsIn } from '../menu';
+import { productsOf } from '../domain/menuEdit';
+import { useMenu } from '../menuStore';
 
 export default function SoldOutScreen() {
   const soldOut = useSoldOut();
+  const menu = useMenu();
   const [categoryId, setCategoryId] = useState('bebidas');
 
   return (
     <div className="menu">
       <nav className="menu-categories">
-        {CATEGORIES.map((c) => {
-          const count = productsIn(c.id).flatMap((p) => p.variants).filter((v) => soldOut.has(v.id)).length;
+        {menu.categories.map((c) => {
+          const count = productsOf(menu, c.id).flatMap((p) => p.variants).filter((v) => soldOut.has(v.id)).length;
           return (
             <button
               key={c.id}
@@ -32,7 +34,7 @@ export default function SoldOutScreen() {
             </button>
           )}
         </div>
-        {productsIn(categoryId).map((p) => {
+        {productsOf(menu, categoryId).map((p) => {
           const ids = p.variants.map((v) => v.id);
           const allOut = ids.every((id) => soldOut.has(id));
           return (

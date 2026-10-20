@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
-import { db, mutateOrder } from '../db';
+import { useRef, useState } from 'react';
+import { CajaCerrada, currentDay, db, mutateOrder } from '../db';
 import { activeLines, orderLabel, orderTotal, type Order } from '../domain/order';
 import {
   addPayment,
@@ -43,6 +43,11 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   const [receivedText, setReceivedText] = useState('');
   const [byItems, setByItems] = useState(false);
   const [showBill, setShowBill] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // A ref, not state, so a fast double tap can't slip in before the re-render.
+  const busy = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const day = useLiveQuery(async () => (await currentDay()) ?? null, []);
   const staff = useStaff();
 
   if (!order) return <main className="screen" />;
@@ -55,7 +60,8 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   const received = toPesos(receivedText);
   const change = changeDue(amount, tip, received);
   const cashShort = method === 'efectivo' && receivedText !== '' && change < 0;
-  const canPay = amount > 0 && !cashShort;
+  const cajaClosed = day === null;
+  const canPay = amount > 0 && !cashShort && !cajaClosed && !saving;
 
   function resetForm() {
     setAmountText(null);
@@ -65,17 +71,29 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
   }
 
   async function pay() {
-    const next = await mutateOrder(orderId, (o) =>
-      addPayment(o, {
-        method,
-        amount,
-        tip,
-        received: method === 'efectivo' ? (receivedText === '' ? amount + tip : received) : undefined,
-        by: staff.name ?? undefined,
-      }),
-    );
-    resetForm();
-    if (next?.closedAt) setShowBill(true);
+    if (busy.current) return;
+    busy.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      const next = await mutateOrder(orderId, (o) =>
+        addPayment(o, {
+          method,
+          amount,
+          tip,
+          received: method === 'efectivo' ? (receivedText === '' ? amount + tip : received) : undefined,
+          by: staff.name ?? undefined,
+        }),
+      );
+      resetForm();
+      if (next?.closedAt) setShowBill(true);
+    } catch (e) {
+      if (!(e instanceof CajaCerrada)) throw e;
+      setError(e.message);
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
   }
 
   if (showBill) {
@@ -213,6 +231,9 @@ export default function PaymentScreen({ orderId, onBack, onDone }: Props) {
             </>
           )}
 
+          {(cajaClosed || error) && (
+            <p className="notice warn">{error ?? new CajaCerrada().message}</p>
+          )}
           <button className="primary big" disabled={!canPay} onClick={pay}>
             Registrar {formatPrice(amount + tip)}
           </button>

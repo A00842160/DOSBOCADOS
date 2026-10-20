@@ -860,9 +860,14 @@ label {
   gap: 12px;
 }
 
+.admin-session {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .role-chip {
   align-self: center;
-  margin-left: auto;
   padding: 6px 14px;
   border-radius: 14px;
   background: var(--bg);

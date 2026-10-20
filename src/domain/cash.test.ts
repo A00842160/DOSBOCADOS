@@ -82,7 +82,7 @@ describe('corte de caja', () => {
   it('prints the corte with the counted difference', () => {
     let { d, orders } = scenario();
     d = addSalida(d, { kind: 'compra', amount: 150, concept: 'Tortillas' });
-    d = closeDay(d, 760, 'Dueño', 5000);
+    d = closeDay(d, 760, 'Dueño');
     const lines = corteTicket(d, corte(d, orders));
     expect(lines.every((l) => l.length <= 48)).toBe(true);
     const text = lines.join('\n');

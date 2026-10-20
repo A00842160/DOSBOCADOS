@@ -92,8 +92,22 @@ export interface Corte {
   openAmount: number;
 }
 
+/** The order as it stood at `time`: payments, closing and cancelling after it are left out. */
+function asOf(order: Order, time: number): Order {
+  if ((order.closedAt ?? 0) <= time && (order.cancelledAt ?? 0) <= time) return order;
+  return {
+    ...order,
+    payments: (order.payments ?? []).filter((p) => p.at <= time),
+    closedAt: order.closedAt && order.closedAt <= time ? order.closedAt : undefined,
+    cancelledAt: order.cancelledAt && order.cancelledAt <= time ? order.cancelledAt : undefined,
+  };
+}
+
 export function corte(day: Day, allOrders: Order[]): Corte {
-  const orders = ordersForDay(allOrders, day).filter((o) => o.lines.length > 0);
+  // A closed corte shows each order as it was at the corte, so what happens later never changes it.
+  const orders = ordersForDay(allOrders, day)
+    .filter((o) => o.lines.length > 0)
+    .map((o) => (day.closedAt ? asOf(o, day.closedAt) : o));
   const paid = orders.filter((o) => o.closedAt && !o.cancelledAt);
   const open = orders.filter((o) => !o.closedAt && !o.cancelledAt);
 

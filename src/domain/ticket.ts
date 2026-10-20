@@ -82,7 +82,15 @@ export function kitchenTicket(order: Order, batch: KitchenBatch, now = Date.now(
   if (batch.changedLines.length > 0) {
     if (batch.newLines.length > 0) out.push(rule(width));
     out.push('CAMBIOS:');
-    for (const line of batch.changedLines) out.push(...kitchenLine(line, width, line.cancelled ? ' (CANCELADO)' : ''));
+    for (const line of batch.changedLines) {
+      const before = batch.previousQty[line.id];
+      const suffix = line.cancelled
+        ? ' (CANCELADO)'
+        : before !== undefined && before !== line.qty
+          ? ` (eran ${before})`
+          : '';
+      out.push(...kitchenLine(line, width, suffix));
+    }
   }
   out.push(rule(width));
   return out;
@@ -92,6 +100,7 @@ function paymentLines(order: Order, width: number): string[] {
   const out: string[] = [];
   for (const p of payments(order)) {
     out.push(spread(methodLabel(p.method), formatPrice(p.amount), width));
+    if (p.by) out.push(`  Cobró: ${p.by}`.slice(0, width));
     if (p.tip > 0) out.push(spread('  Propina', formatPrice(p.tip), width));
     if (p.method === 'efectivo' && p.received !== undefined) {
       out.push(spread('  Recibido', formatPrice(p.received), width));
@@ -141,6 +150,8 @@ export function corteTicket(day: Day, c: Corte, now = Date.now(), width = TICKET
   for (const m of METHODS) {
     if (m.id !== 'plataforma' || c.byMethod[m.id].sales > 0) out.push(money(`  ${m.label}`, c.byMethod[m.id].sales));
   }
+  if (c.onAccount > 0) out.push(money('  Incluye abonos abiertos', c.onAccount));
+  if (c.paidBefore > 0) out.push(money('  Pagado días anteriores', c.paidBefore));
   out.push('', 'POR CANAL');
   for (const ch of CHANNELS) {
     const row = c.byChannel[ch.id];
@@ -148,7 +159,12 @@ export function corteTicket(day: Day, c: Corte, now = Date.now(), width = TICKET
   }
   if (c.commissions > 0) out.push(money('  - Comisiones de apps', c.commissions), money('  = Venta neta', c.sales - c.commissions));
   out.push('', 'PROPINAS', money('  En efectivo', c.tipsCash), money('  Con tarjeta/transf.', c.tipsCard));
-  out.push(rule(width), 'EFECTIVO EN CAJA', money('  Fondo', c.fondo), money('  + Ventas en efectivo', c.byMethod.efectivo.sales));
+  // Only worth a section once more than one person is charging.
+  if (c.byStaff.length > 1 || (c.byStaff.length === 1 && c.byStaff[0].name !== 'Sin nombre')) {
+    out.push('', 'COBRADO POR');
+    for (const s of c.byStaff) out.push(money(`  ${s.name}`.slice(0, width - 12), s.amount));
+  }
+  out.push(rule(width), 'EFECTIVO EN CAJA', money('  Fondo', c.fondo), money('  + Cobrado en efectivo', c.byMethod.efectivo.sales));
   out.push(money('  + Propinas en efectivo', c.tipsCash));
   for (const k of SALIDA_KINDS) if (c.salidasByKind[k.id] > 0) out.push(money(`  - Salidas: ${k.label}`, c.salidasByKind[k.id]));
   out.push(money('  = Esperado', c.expectedCash));
@@ -166,7 +182,7 @@ export function corteTicket(day: Day, c: Corte, now = Date.now(), width = TICKET
     out.push(rule(width), spread('Pedidos cancelados', String(c.cancelledOrders), width));
     out.push(money(`Platillos cancelados (${c.cancelledLines})`, c.cancelledAmount));
   }
-  if (c.openOrders > 0) out.push(rule(width), money(`ABIERTOS SIN COBRAR (${c.openOrders})`, c.openAmount));
+  if (c.openOrders > 0) out.push(rule(width), money(`FALTA COBRAR (${c.openOrders})`, c.openAmount));
   if (c.items.length > 0) {
     out.push(rule(width), 'PLATILLOS VENDIDOS');
     for (const item of c.items) {

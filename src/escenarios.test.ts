@@ -6,6 +6,7 @@ import { CajaCerrada, db, mutateOrder, saveOrder, startDay } from './db';
 import { closeDay, corte, openDay } from './domain/cash';
 import { addItem, canCancelOrder, cancelOrder, MAX_QTY, markServed, newOrder, ownerCancelLine, sendToKitchen, setQty, type Order } from './domain/order';
 import { addPayment, equalPart, remaining, settle } from './domain/payment';
+import { kitchenTicket } from './domain/ticket';
 import { PRODUCTS } from './menu';
 
 const kilo = PRODUCTS.find((p) => p.id === 'kilo')!;
@@ -53,6 +54,8 @@ describe('escenarios de servicio', () => {
     await mutateOrder(id, cash(580));
 
     const after = await corteOf(day.id);
+    expect(after).toEqual(before);
+    expect(after.openOrders).toBe(1);
     expect(after.sales).toBe(before.sales);
     expect(after.expectedCash).toBe(before.expectedCash);
     expect(after.sales).toBe(0);
@@ -126,5 +129,56 @@ describe('escenarios de servicio', () => {
     o = addItem(o, refresco, refresco.variants[0]);
     expect(o.lines[0].qty).toBe(MAX_QTY);
     expect(o.lines).toHaveLength(1);
+  });
+
+  it('X1. a partial cash payment counts in the drawer of the day it was taken', async () => {
+    const day = openDay(500);
+    await startDay(day);
+    const id = await saveOrder(mesa580());
+    await mutateOrder(id, cash(290));
+    await db.days.put(closeDay((await db.days.get(day.id))!, 790));
+    const first = await corteOf(day.id);
+    expect(first.expectedCash).toBe(790);
+    expect(first.onAccount).toBe(290);
+    expect(first.openAmount).toBe(290);
+
+    const next = openDay(500);
+    await startDay(next);
+    await mutateOrder(id, cash(290));
+    const second = await corteOf(next.id);
+    expect(second.expectedCash).toBe(790);
+    expect(second.sales).toBe(580);
+    expect(second.paidBefore).toBe(290);
+    expect((await corteOf(day.id)).expectedCash).toBe(790);
+  });
+
+  it('P4. the kitchen ticket says how many there were before a change', () => {
+    let o = addItem(newOrder('mesa', { table: 5 }), refresco, refresco.variants[0]);
+    o = setQty(o, o.lines[0].id, 3);
+    o = sendToKitchen(o).order;
+    o = setQty(o, o.lines[0].id, 4);
+    const { order, batch } = sendToKitchen(o);
+    expect(kitchenTicket(order, batch).join('\n')).toMatch(/4 {2}Refresco.*\(eran 3\)/);
+  });
+
+  it('P6. taking back every dish of an unpaid order frees it', () => {
+    let o = markServed(sendToKitchen(addItem(newOrder('mesa', { table: 5 }), refresco, refresco.variants[0])).order);
+    o = settle(ownerCancelLine(o, o.lines[0].id)).order;
+    expect(o.cancelledAt).toBeDefined();
+  });
+
+  it('A6. the corte says how much each person charged', () => {
+    const day = openDay(500, undefined, 1000);
+    const ana = addPayment(mesa580(), { method: 'efectivo', amount: 580, tip: 20, by: 'Ana' }, 2000);
+    const luis = addPayment(
+      addItem(newOrder('llevar'), refresco, refresco.variants[0]),
+      { method: 'terminal', amount: 30, tip: 0, by: 'Luis' },
+      2100,
+    );
+    const c = corte(day, [{ ...ana, dayId: day.id }, { ...luis, dayId: day.id }]);
+    expect(c.byStaff).toEqual([
+      { name: 'Ana', amount: 580, tips: 20 },
+      { name: 'Luis', amount: 30, tips: 0 },
+    ]);
   });
 });

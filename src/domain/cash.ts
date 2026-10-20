@@ -4,7 +4,7 @@
 // tips never reach the drawer, so they are shown apart.
 
 import { activeLines, commission, lineTotal, orderTotal, perChannel, type Channel, type Order } from './order';
-import { payments, type Method } from './payment';
+import { payments, remaining, type Method } from './payment';
 
 export type SalidaKind = 'compra' | 'propinas' | 'ventas' | 'otro';
 
@@ -54,12 +54,22 @@ export function closeDay(day: Day, counted: number | undefined, by?: string, now
   return { ...day, closedAt: now, closedBy: by, counted };
 }
 
-/** Orders tagged with the day, plus untagged ones created while it was open. */
+/**
+ * Orders tagged with the day, plus untagged ones created while it was open. A closed
+ * day also keeps the bills that were still open at its corte, even after the next day
+ * took them over, so its corte reads the same later.
+ */
 export function ordersForDay(orders: Order[], day: Day): Order[] {
+  const closed = day.closedAt;
   return orders.filter(
     (o) =>
       o.dayId === day.id ||
-      (!o.dayId && o.createdAt >= day.openedAt && (!day.closedAt || o.createdAt < day.closedAt)),
+      (!o.dayId && o.createdAt >= day.openedAt && (!closed || o.createdAt < closed)) ||
+      (closed !== undefined &&
+        o.dayId !== undefined &&
+        o.createdAt < closed &&
+        (o.closedAt ?? Infinity) > closed &&
+        (o.cancelledAt ?? Infinity) > closed),
   );
 }
 
@@ -82,6 +92,8 @@ export interface Corte {
   salidas: number;
   salidasByKind: Record<SalidaKind, number>;
   expectedCash: number;
+  /** Money (sales plus tips) each person registered, most first. */
+  byStaff: { name: string; amount: number; tips: number }[];
   orders: number;
   averageTicket: number;
   cancelledOrders: number;
@@ -89,7 +101,12 @@ export interface Corte {
   cancelledAmount: number;
   /** Orders still open; their money isn't in the corte yet. */
   openOrders: number;
+  /** What open orders still owe. */
   openAmount: number;
+  /** Paid today toward bills that are still open; it is in the drawer but not yet a sale. */
+  onAccount: number;
+  /** Paid on an earlier day toward bills that closed today; a sale today but not in today's drawer. */
+  paidBefore: number;
 }
 
 /** The order as it stood at `time`: payments, closing and cancelling after it are left out. */
@@ -120,11 +137,28 @@ export function corte(day: Day, allOrders: Order[]): Corte {
   const byChannel: Corte['byChannel'] = perChannel(() => ({ orders: 0, sales: 0 }));
   const items = new Map<string, ItemSale>();
 
-  for (const order of paid) {
+  // The drawer counts every payment taken while this day was open, by the time it was
+  // taken, even when the bill closes on another day. Only one day is open at a time.
+  const inDay = (at: number) => at >= day.openedAt && (!day.closedAt || at <= day.closedAt);
+  const staff = new Map<string, { amount: number; tips: number }>();
+  let onAccount = 0;
+  for (const order of allOrders) {
+    if (order.cancelledAt) continue;
     for (const p of payments(order)) {
+      if (!inDay(p.at)) continue;
       byMethod[p.method].sales += p.amount;
       byMethod[p.method].tips += p.tip;
+      const who = staff.get(p.by ?? 'Sin nombre') ?? { amount: 0, tips: 0 };
+      staff.set(p.by ?? 'Sin nombre', { amount: who.amount + p.amount, tips: who.tips + p.tip });
+      if (!paid.some((o) => o.id === order.id)) onAccount += p.amount;
     }
+  }
+  const paidBefore = paid.reduce(
+    (sum, o) => sum + payments(o).filter((p) => !inDay(p.at)).reduce((n, p) => n + p.amount, 0),
+    0,
+  );
+
+  for (const order of paid) {
     byChannel[order.channel].orders += 1;
     byChannel[order.channel].sales += orderTotal(order);
     for (const line of activeLines(order)) {
@@ -166,12 +200,15 @@ export function corte(day: Day, allOrders: Order[]): Corte {
     salidas,
     salidasByKind,
     expectedCash: day.fondo + byMethod.efectivo.sales + tipsCash - salidas,
+    byStaff: [...staff].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.amount - a.amount),
     orders: paid.length,
     averageTicket: paid.length ? Math.round(sales / paid.length) : 0,
     cancelledOrders: orders.filter((o) => o.cancelledAt).length,
     cancelledLines,
     cancelledAmount,
     openOrders: open.length,
-    openAmount: open.reduce((sum, o) => sum + orderTotal(o), 0),
+    openAmount: open.reduce((sum, o) => sum + remaining(o), 0),
+    onAccount,
+    paidBefore,
   };
 }

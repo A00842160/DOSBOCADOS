@@ -80,7 +80,12 @@ export function addPayment(order: Order, payment: Omit<Payment, 'id' | 'at'>, no
  * hand back to the customer.
  */
 export function settle(order: Order, now = Date.now()): { order: Order; refund: number } {
-  if (order.closedAt || !payments(order).length) return { order, refund: 0 };
+  if (order.closedAt || order.cancelledAt) return { order, refund: 0 };
+  // Nobody paid and every dish was taken back: nothing is left to charge.
+  if (!payments(order).length) {
+    const empty = order.lines.length > 0 && order.lines.every((l) => l.cancelled);
+    return { order: empty ? { ...order, cancelledAt: now, updatedAt: now } : order, refund: 0 };
+  }
   const total = orderTotal(order);
   const refund = Math.max(0, paidAmount(order) - total);
   if (paidAmount(order) < total) return { order, refund: 0 };

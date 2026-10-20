@@ -7,6 +7,7 @@ import {
   canCancelOrder,
   canEditLine,
   hasInKitchen,
+  MAX_QTY,
   hasKitchenWork,
   markServed,
   ownerCancelLine,
@@ -51,7 +52,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
   const [ticket, setTicket] = useState<{ title: string; lines: string[] } | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [ownerCancel, setOwnerCancel] = useState<OrderLine | null>(null);
-  const [settled, setSettled] = useState<{ refund: number } | null>(null);
+  const [settled, setSettled] = useState<{ refund: number; cancelled: boolean } | null>(null);
 
   if (!order) return <main className="screen" />;
 
@@ -254,7 +255,9 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
                   return result.order;
                 });
                 setOwnerCancel(null);
-                if (result?.order.closedAt || result?.order.cancelledAt) setSettled({ refund: result.refund });
+                if (result?.order.closedAt || result?.order.cancelledAt) {
+                  setSettled({ refund: result.refund, cancelled: Boolean(result.order.cancelledAt) });
+                }
                 return null;
               }}
             />
@@ -265,9 +268,11 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
       {settled && (
         <div className="overlay">
           <div className="dialog">
-            <h2>La cuenta quedó pagada</h2>
+            <h2>{settled.cancelled ? 'Pedido cancelado' : 'La cuenta quedó pagada'}</h2>
             <p className="product-description">
-              {settled.refund > 0
+              {settled.cancelled && settled.refund === 0
+                ? 'Ya no queda nada por cobrar, así que el pedido se canceló.'
+                : settled.refund > 0
                 ? `Se pagó de más. Devuelve ${formatPrice(settled.refund)} al cliente.`
                 : 'Lo que ya se pagó cubre la cuenta.'}
             </p>
@@ -305,6 +310,8 @@ function LineRow({ line, onQty, onEdit }: { line: OrderLine; onQty: (qty: number
         )}
         <span className={`line-status ${line.cancelled ? 'cancelado' : line.status}`}>
           {line.cancelled ? 'Cancelado' : STATUS_LABEL[line.status]}
+          {line.changed && !line.cancelled && ' · cambió, falta avisar a cocina'}
+          {editable && line.qty >= MAX_QTY && ` · máximo ${MAX_QTY}`}
         </span>
       </button>
       <div className="line-qty">
@@ -315,7 +322,12 @@ function LineRow({ line, onQty, onEdit }: { line: OrderLine; onQty: (qty: number
         )}
         <span className="qty">{line.qty}</span>
         {editable && (
-          <button className="qty-btn" onClick={() => onQty(line.qty + 1)} aria-label="Agregar uno">
+          <button
+            className="qty-btn"
+            disabled={line.qty >= MAX_QTY}
+            onClick={() => onQty(line.qty + 1)}
+            aria-label="Agregar uno"
+          >
             +
           </button>
         )}

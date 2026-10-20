@@ -10,7 +10,8 @@ export default function TablesScreen({ navigate }: { navigate: Navigate }) {
   const staff = useStaff();
 
   async function open(table: number) {
-    let order = orders.find((o) => o.channel === 'mesa' && o.table === table);
+    // Read the stored orders, not the rendered ones: right after opening the screen they may not be loaded yet.
+    let order = (await openOrders()).find((o) => o.channel === 'mesa' && o.table === table);
     if (!order) {
       order = newOrder('mesa', { table, createdBy: staff.name ?? undefined });
       await saveOrder(order);
@@ -22,7 +23,7 @@ export default function TablesScreen({ navigate }: { navigate: Navigate }) {
     <div className="tables">
       {TABLES.map((table) => {
         const order = orders.find((o) => o.channel === 'mesa' && o.table === table);
-        const busy = order && order.lines.length > 0;
+        const busy = order && itemCount(order) > 0;
         return (
           <button key={table} className={busy ? 'table-tile busy' : 'table-tile'} onClick={() => open(table)}>
             <span className="table-number">Mesa {table}</span>

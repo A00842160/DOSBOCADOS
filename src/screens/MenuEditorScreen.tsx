@@ -15,6 +15,7 @@ import type { Product } from '../menu';
 import { setCommission, useCommissions } from '../commissions';
 import { channelLabel, PLATFORMS } from '../domain/order';
 import { editMenu, resetMenu, useMenu } from '../menuStore';
+import CommitInput from './CommitInput';
 
 /** Owner only: change prices, names and options, or add and remove dishes. */
 export default function MenuEditorScreen() {
@@ -200,39 +201,5 @@ function ProductEditor({ product: p }: { product: Product }) {
         </button>
       </form>
     </article>
-  );
-}
-
-/** A text box that saves when it loses focus or on Enter, and shows the stored value otherwise. */
-function CommitInput({
-  value,
-  onCommit,
-  numeric,
-  placeholder,
-  className,
-}: {
-  value: string;
-  onCommit: (text: string) => unknown;
-  numeric?: boolean;
-  placeholder?: string;
-  className?: string;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = () => {
-    if (draft !== null && draft !== value) onCommit(draft);
-    setDraft(null);
-  };
-  return (
-    <input
-      className={className}
-      value={draft ?? value}
-      placeholder={placeholder}
-      inputMode={numeric ? 'numeric' : undefined}
-      onChange={(e) => setDraft(numeric ? e.target.value.replace(/\D/g, '') : e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-      }}
-    />
   );
 }

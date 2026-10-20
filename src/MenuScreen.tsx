@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useSoldOut } from './availability';
 import { CATEGORIES, formatPrice, productsIn } from './menu';
 
 export default function MenuScreen() {
   const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
   const category = CATEGORIES.find((c) => c.id === categoryId)!;
+  const soldOut = useSoldOut();
 
   return (
     <div className="menu">
@@ -31,7 +33,7 @@ export default function MenuScreen() {
                     {v.favorite && <span className="favorite">★ </span>}
                     {v.name || p.name}
                   </span>
-                  <span className="variant-price">{formatPrice(v.price)}</span>
+                  <span className="variant-price">{soldOut.has(v.id) ? 'Agotado' : formatPrice(v.price)}</span>
                   {v.description && <span className="variant-description">{v.description}</span>}
                 </div>
               ))}

@@ -1149,3 +1149,96 @@ select {
 .inv-table tr.high-cost td {
   color: #ff8a80;
 }
+
+/* Cocina */
+
+.kitchen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prep-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px 20px;
+  margin-top: 8px;
+}
+
+.prep-item,
+.round-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 1.2rem;
+}
+
+.prep-item .line-notes,
+.round-line .line-notes {
+  display: block;
+}
+
+.prep-qty {
+  min-width: 36px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.kitchen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 8px solid #2e7d32;
+}
+
+.round.warn {
+  border-top-color: #f9a825;
+}
+
+.round.late {
+  border-top-color: #c62828;
+}
+
+.round-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.round-time {
+  white-space: nowrap;
+}
+
+.round.warn .round-time {
+  color: #ffcc80;
+}
+
+.round.late .round-time {
+  color: #ff8a80;
+}
+
+.round-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kitchen-tile.late {
+  outline: 3px solid #c62828;
+}

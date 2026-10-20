@@ -196,7 +196,7 @@ export default function OrderScreen({ orderId, onBack, onPay }: Props) {
             <button className="primary" disabled={!hasKitchenWork(order)} onClick={sendKitchen}>
               Mandar a cocina
             </button>
-            <button className="secondary" disabled={!hasInKitchen(order)} onClick={() => update(markServed)}>
+            <button className="secondary" disabled={!hasInKitchen(order)} onClick={() => update((o) => markServed(o))}>
               Ya salió de cocina
             </button>
             <button

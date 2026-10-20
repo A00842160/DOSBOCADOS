@@ -4,6 +4,7 @@ import { db } from '../db';
 import { CHANNELS, isPlatform } from '../domain/order';
 import { METHODS } from '../domain/payment';
 import { foodCost } from '../domain/inventory';
+import { kitchenTimes, LATE_MINUTES } from '../domain/kitchen';
 import { lastDays, month, paidIn, salesReport, type Range } from '../domain/report';
 import { useRecipes, useSupplies } from '../inventoryStore';
 import { formatPrice } from '../menu';
@@ -25,6 +26,7 @@ export default function ReportScreen() {
   const range = PERIODS.find((p) => p.id === period)!.range();
   const r = salesReport(orders, range);
   const food = foodCost(paidIn(orders, range), useRecipes(), useSupplies());
+  const kitchen = kitchenTimes(orders, range);
   const covered = r.sales ? Math.round((food.coveredSales / r.sales) * 100) : 0;
 
   const dayLabel = (day: number) =>
@@ -62,6 +64,37 @@ export default function ReportScreen() {
           El costo incluye solo los platillos con receta y costo ({covered}% de la venta). Lo demás cuenta como si no
           costara.
         </p>
+      )}
+
+      {kitchen.rounds > 0 && (
+        <article className="product">
+          <h2>Tiempo de cocina</h2>
+          <div className="stats">
+            <Stat label="Promedio para salir" value={`${kitchen.averageMinutes} min`} />
+            <Stat label={`Rondas de ${LATE_MINUTES} min o más`} value={`${kitchen.latePercent}%`} />
+            <Stat label="Rondas medidas" value={String(kitchen.rounds)} />
+          </div>
+          <h3>Minutos promedio según la hora</h3>
+          <Bars
+            data={kitchen.byHour
+              .map((m, hour) => ({ label: `${hour}h`, sales: m }))
+              .filter((h): h is { label: string; sales: number } => h.sales !== null)}
+            format={(m) => `${m} min`}
+          />
+          {kitchen.slowest.length > 0 && (
+            <>
+              <h3>Los que más tardan</h3>
+              {kitchen.slowest.map((d) => (
+                <div key={d.name} className="sum-row">
+                  <span>
+                    {d.name} <span className="muted">({d.servings} veces)</span>
+                  </span>
+                  <span>{d.averageMinutes} min</span>
+                </div>
+              ))}
+            </>
+          )}
+        </article>
       )}
 
       {r.orders === 0 ? (
@@ -149,13 +182,19 @@ function Share({ label, value, total }: { label: string; value: number; total: n
   );
 }
 
-function Bars({ data }: { data: { label: string; sales: number }[] }) {
+function Bars({
+  data,
+  format = formatPrice,
+}: {
+  data: { label: string; sales: number }[];
+  format?: (value: number) => string;
+}) {
   const max = Math.max(1, ...data.map((d) => d.sales));
   return (
     <div className="bars" style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}>
       {data.map((d, i) => (
-        <div key={i} className="bar-col" title={`${d.label}: ${formatPrice(d.sales)}`}>
-          <span className="bar-value">{d.sales > 0 && data.length <= 14 ? formatPrice(d.sales) : ''}</span>
+        <div key={i} className="bar-col" title={`${d.label}: ${format(d.sales)}`}>
+          <span className="bar-value">{d.sales > 0 && data.length <= 14 ? format(d.sales) : ''}</span>
           <div className="chart-bar" style={{ height: `${(d.sales / max) * 100}%` }} />
           <span className="bar-label">{data.length <= 14 || i % 5 === 0 ? d.label : ''}</span>
         </div>

@@ -1011,7 +1011,7 @@ label {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -1144,4 +1144,8 @@ select {
 .inv-table th {
   color: var(--muted);
   font-weight: 600;
+}
+
+.inv-table tr.high-cost td {
+  color: #ff8a80;
 }

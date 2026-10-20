@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { db } from '../db';
 import { CHANNELS, isPlatform } from '../domain/order';
 import { METHODS } from '../domain/payment';
-import { lastDays, month, salesReport, type Range } from '../domain/report';
+import { foodCost } from '../domain/inventory';
+import { lastDays, month, paidIn, salesReport, type Range } from '../domain/report';
+import { useRecipes, useSupplies } from '../inventoryStore';
 import { formatPrice } from '../menu';
 
 type Period = 'semana' | 'mes' | 'mes-pasado';
@@ -20,7 +22,10 @@ const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 export default function ReportScreen() {
   const [period, setPeriod] = useState<Period>('semana');
   const orders = useLiveQuery(() => db.orders.toArray(), [], []);
-  const r = salesReport(orders, PERIODS.find((p) => p.id === period)!.range());
+  const range = PERIODS.find((p) => p.id === period)!.range();
+  const r = salesReport(orders, range);
+  const food = foodCost(paidIn(orders, range), useRecipes(), useSupplies());
+  const covered = r.sales ? Math.round((food.coveredSales / r.sales) * 100) : 0;
 
   const dayLabel = (day: number) =>
     new Intl.DateTimeFormat('es-MX', period === 'semana' ? { weekday: 'short', day: 'numeric' } : { day: 'numeric' }).format(day);
@@ -45,7 +50,19 @@ export default function ReportScreen() {
         <Stat label="Pedidos cobrados" value={String(r.orders)} />
         <Stat label="Ticket promedio" value={formatPrice(r.averageTicket)} />
         <Stat label="Propinas" value={formatPrice(r.tips)} />
+        {food.cost > 0 && (
+          <>
+            <Stat label="Costo de insumos (aprox.)" value={formatPrice(food.cost)} />
+            <Stat label="Te queda después de insumos" value={formatPrice(r.sales - r.commissions - food.cost)} />
+          </>
+        )}
       </div>
+      {food.cost > 0 && covered < 100 && (
+        <p className="hint">
+          El costo incluye solo los platillos con receta y costo ({covered}% de la venta). Lo demás cuenta como si no
+          costara.
+        </p>
+      )}
 
       {r.orders === 0 ? (
         <p className="placeholder">Todavía no hay ventas cobradas en este periodo.</p>

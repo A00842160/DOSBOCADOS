@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import type { Role } from '../auth';
+import { formatPrice } from '../menu';
 import {
+  costShare,
   daysLeft,
+  dishCost,
   formatQty,
   isLow,
   MOVEMENT_KINDS,
@@ -28,7 +31,7 @@ import {
 import { useMenu } from '../menuStore';
 import CommitInput, { decimalText } from './CommitInput';
 
-type Tab = 'existencias' | 'recetas' | 'movimientos';
+type Tab = 'existencias' | 'recetas' | 'costos' | 'movimientos';
 
 const WINDOW_DAYS = 7;
 
@@ -37,12 +40,17 @@ export default function InventoryScreen({ role, who }: { role: Role; who: string
   const [tab, setTab] = useState<Tab>('existencias');
   const tabs: { id: Tab; label: string }[] = [
     { id: 'existencias', label: 'Existencias' },
-    ...(role === 'dueno' ? [{ id: 'recetas' as const, label: 'Recetas' }] : []),
+    ...(role === 'dueno'
+      ? [
+          { id: 'recetas' as const, label: 'Recetas' },
+          { id: 'costos' as const, label: 'Costos' },
+        ]
+      : []),
     { id: 'movimientos', label: 'Movimientos' },
   ];
   return (
     <div className="report">
-      <div className="segmented">
+      <div className={tabs.length === 4 ? 'segmented four' : 'segmented'}>
         {tabs.map((t) => (
           <button key={t.id} className={t.id === tab ? 'seg active' : 'seg'} onClick={() => setTab(t.id)}>
             {t.label}
@@ -51,6 +59,7 @@ export default function InventoryScreen({ role, who }: { role: Role; who: string
       </div>
       {tab === 'existencias' && <Stock owner={role === 'dueno'} who={who} />}
       {tab === 'recetas' && <RecipesEditor />}
+      {tab === 'costos' && <Costs />}
       {tab === 'movimientos' && <History />}
     </div>
   );
@@ -89,15 +98,17 @@ function Stock({ owner, who }: { owner: boolean; who: string }) {
 function SupplyCard({ supply: s, perDay, owner, who }: { supply: Supply; perDay: number; owner: boolean; who: string }) {
   const [action, setAction] = useState<Exclude<MovementKind, 'venta'> | null>(null);
   const [qty, setQty] = useState('');
+  const [paid, setPaid] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(false);
   const left = daysLeft(s, perDay);
   const unit = unitInfo(s.unit).label;
 
   const save = async () => {
     if (!action || qty === '') return;
-    await registerMovement(s, action, Number(qty), who);
+    await registerMovement(s, action, Number(qty), who, paid === '' ? undefined : Number(paid));
     setAction(null);
     setQty('');
+    setPaid('');
   };
 
   return (
@@ -132,6 +143,19 @@ function SupplyCard({ supply: s, perDay, owner, who }: { supply: Supply; perDay:
         )}
         <span className="muted">{unit}</span>
       </div>
+      {owner && (
+        <div className="editor-row">
+          <span className="muted">Te cuesta $</span>
+          <CommitInput
+            className="inline-input"
+            decimal
+            placeholder="?"
+            value={s.cost === undefined ? '' : String(s.cost)}
+            onCommit={(text) => updateSupply(s.id, { cost: text === '' ? undefined : Number(text) })}
+          />
+          <span className="muted">por {unitInfo(s.unit).single}</span>
+        </div>
+      )}
       {action === null ? (
         <div className="row-end">
           <button className="secondary" onClick={() => setAction('compra')}>
@@ -178,6 +202,18 @@ function SupplyCard({ supply: s, perDay, owner, who }: { supply: Supply; perDay:
             onChange={(e) => setQty(decimalText(e.target.value))}
           />
           <span className="muted">{unit}</span>
+          {action === 'compra' && (
+            <>
+              <span>Pagaste $</span>
+              <input
+                className="inline-input"
+                inputMode="decimal"
+                value={paid}
+                onChange={(e) => setPaid(decimalText(e.target.value))}
+                placeholder="Opcional"
+              />
+            </>
+          )}
           <button type="button" className="secondary" onClick={() => setAction(null)}>
             Cancelar
           </button>
@@ -356,6 +392,88 @@ function VariantRecipe({
   );
 }
 
+/** A dish is expensive when supplies take more than this share of its price. */
+const HIGH_COST = 35;
+
+function Costs() {
+  const menu = useMenu();
+  const supplies = useSupplies();
+  const recipes = useRecipes();
+  const [categoryId, setCategoryId] = useState(menu.categories[0].id);
+  const noCost = supplies.filter((s) => s.cost === undefined);
+
+  return (
+    <div className="menu">
+      <nav className="menu-categories">
+        {menu.categories.map((c) => (
+          <button
+            key={c.id}
+            className={c.id === categoryId ? 'category active' : 'category'}
+            onClick={() => setCategoryId(c.id)}
+          >
+            {c.name}
+          </button>
+        ))}
+      </nav>
+      <section className="menu-products">
+        <p className="category-note">
+          Lo que te cuestan los insumos de cada platillo, con el precio de tu última compra. Se marca en rojo si los
+          insumos pasan del {HIGH_COST}% del precio.
+        </p>
+        {noCost.length > 0 && (
+          <p className="notice warn">Falta el costo de: {noCost.map((s) => s.name).join(', ')}. Ponlo en Existencias.</p>
+        )}
+        {productsOf(menu, categoryId).map((p) => (
+          <article key={p.id} className="product">
+            <h2>{p.name}</h2>
+            <table className="inv-table">
+              <thead>
+                <tr>
+                  <th>Opción</th>
+                  <th>Precio</th>
+                  <th>Insumos</th>
+                  <th>Te queda</th>
+                  <th>% costo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.variants.map((v) => {
+                  const dish = dishCost(recipes[v.id], supplies);
+                  const share = dish ? costShare(dish.cost, v.price) : 0;
+                  return (
+                    <tr key={v.id} className={dish && share > HIGH_COST ? 'high-cost' : undefined}>
+                      <td>{v.name || p.name}</td>
+                      <td>{formatPrice(v.price)}</td>
+                      {dish ? (
+                        <>
+                          <td>
+                            {formatMoney(dish.cost)}
+                            {dish.missing.length > 0 && <span className="muted"> + ?</span>}
+                          </td>
+                          <td>{formatMoney(v.price - dish.cost)}</td>
+                          <td>{share}%</td>
+                        </>
+                      ) : (
+                        <td colSpan={3} className="muted">
+                          Sin receta
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+function formatMoney(pesos: number): string {
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 }).format(pesos);
+}
+
 function History() {
   const supplies = useSupplies();
   const [from] = useState(() => since(WINDOW_DAYS));
@@ -377,6 +495,7 @@ function History() {
             <tr>
               <th>Insumo</th>
               <th>Comprado</th>
+              <th>Gastado</th>
               <th>Vendido</th>
               <th>Merma y diferencias</th>
             </tr>
@@ -388,6 +507,7 @@ function History() {
                 <tr key={s.id}>
                   <td>{s.name}</td>
                   <td>{formatQty(totals[s.id].bought, s.unit)}</td>
+                  <td>{totals[s.id].spent ? formatPrice(Math.round(totals[s.id].spent)) : '—'}</td>
                   <td>{formatQty(totals[s.id].sold, s.unit)}</td>
                   <td>{formatQty(totals[s.id].lost, s.unit)}</td>
                 </tr>

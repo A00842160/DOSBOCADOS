@@ -8,6 +8,7 @@ import {
   type Recipes,
   type Supply,
   type Unit,
+  unitCost,
 } from './domain/inventory';
 
 export function useSupplies(): Supply[] {
@@ -27,7 +28,7 @@ export async function addSupply(name: string, unit: Unit, minimum: number): Prom
   await db.supplies.put({ id: crypto.randomUUID(), name: name.trim(), unit, minimum, stock: 0 });
 }
 
-export async function updateSupply(id: string, change: Partial<Pick<Supply, 'name' | 'minimum'>>): Promise<void> {
+export async function updateSupply(id: string, change: Partial<Pick<Supply, 'name' | 'minimum' | 'cost'>>): Promise<void> {
   await db.supplies.update(id, change);
 }
 
@@ -48,8 +49,17 @@ export async function editRecipe(variantId: string, supplyId: string, qty: numbe
   });
 }
 
-/** Purchase or waste: an amount in or out. A count sets the stock to what was counted. */
-export async function registerMovement(supply: Supply, kind: Exclude<MovementKind, 'venta'>, qty: number, by?: string) {
+/**
+ * Purchase or waste: an amount in or out. A count sets the stock to what was counted.
+ * A purchase with what was paid also updates the supply's cost per unit.
+ */
+export async function registerMovement(
+  supply: Supply,
+  kind: Exclude<MovementKind, 'venta'>,
+  qty: number,
+  by?: string,
+  paid?: number,
+) {
   const now = Date.now();
   if (kind === 'conteo') {
     const fresh = await db.supplies.get(supply.id);
@@ -58,7 +68,9 @@ export async function registerMovement(supply: Supply, kind: Exclude<MovementKin
     return;
   }
   if (qty <= 0) return;
+  const cost = kind === 'compra' && paid ? paid : undefined;
   await recordMovements([
-    { id: crypto.randomUUID(), supplyId: supply.id, qty: kind === 'merma' ? -qty : qty, kind, at: now, by },
+    { id: crypto.randomUUID(), supplyId: supply.id, qty: kind === 'merma' ? -qty : qty, kind, at: now, by, cost },
   ]);
+  if (cost) await db.supplies.update(supply.id, { cost: unitCost(cost, qty) });
 }

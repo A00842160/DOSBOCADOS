@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useSoldOut } from './availability';
-import { CATEGORIES, formatPrice, productsIn } from './menu';
+import { productsOf } from './domain/menuEdit';
+import { formatPrice } from './menu';
+import { useMenu } from './menuStore';
 
 export default function MenuScreen() {
-  const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
-  const category = CATEGORIES.find((c) => c.id === categoryId)!;
+  const menu = useMenu();
+  const [categoryId, setCategoryId] = useState(menu.categories[0].id);
+  const category = menu.categories.find((c) => c.id === categoryId)!;
   const soldOut = useSoldOut();
 
   return (
     <div className="menu">
       <nav className="menu-categories">
-        {CATEGORIES.map((c) => (
+        {menu.categories.map((c) => (
           <button
             key={c.id}
             className={c.id === categoryId ? 'category active' : 'category'}
@@ -22,7 +25,7 @@ export default function MenuScreen() {
       </nav>
       <section className="menu-products">
         {category.note && <p className="category-note">{category.note}</p>}
-        {productsIn(categoryId).map((p) => (
+        {productsOf(menu, categoryId).map((p) => (
           <article key={p.id} className="product">
             <h2>{p.name}</h2>
             {p.description && <p className="product-description">{p.description}</p>}

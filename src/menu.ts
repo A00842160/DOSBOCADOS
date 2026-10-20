@@ -54,7 +54,7 @@ function single(productId: string, price: number): Variant[] {
   return [{ id: `${productId}.unico`, name: '', price }];
 }
 
-function slug(text: string): string {
+export function slug(text: string): string {
   return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

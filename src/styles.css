@@ -1242,3 +1242,21 @@ select {
 .kitchen-tile.late {
   outline: 3px solid #c62828;
 }
+
+/* Respaldo */
+
+.file-pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.file-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}

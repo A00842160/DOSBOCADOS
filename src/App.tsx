@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { currentDay, db, openOrders } from './db';
 import { kitchenQueue, LATE_MINUTES } from './domain/kitchen';
 import { isLow } from './domain/inventory';
+import { daysSince } from './domain/backup';
+import { useLastBackup } from './backup';
 import MenuScreen from './MenuScreen';
 import EncargadoScreen from './screens/EncargadoScreen';
 import KitchenScreen, { useNow } from './screens/KitchenScreen';
@@ -58,6 +60,10 @@ export default function App() {
   const dayOpen = useLiveQuery(async () => Boolean(await currentDay()), [], true);
   const rounds = kitchenQueue(useLiveQuery(openOrders, [], []), useNow());
   const late = rounds.filter((r) => r.minutes >= LATE_MINUTES).length;
+  const lastBackup = useLastBackup();
+  const hasSales = useLiveQuery(async () => (await db.orders.count()) > 0, [], false);
+  const backupDays = daysSince(lastBackup);
+  const needsBackup = hasSales && (backupDays === null || backupDays >= 7);
   const low = useLiveQuery(async () => (await db.supplies.toArray()).filter(isLow).map((s) => s.name), [], []);
 
   if (route.name === 'pedido') {
@@ -116,6 +122,12 @@ export default function App() {
       </header>
       {!dayOpen && (
         <p className="notice warn home-notice">La caja no está abierta. El encargado la abre en Encargado › Caja.</p>
+      )}
+      {needsBackup && (
+        <p className="notice warn home-notice">
+          {backupDays === null ? 'Nunca has hecho un respaldo' : `Llevas ${backupDays} días sin respaldo`}. El dueño lo hace en
+          Encargado › Respaldo.
+        </p>
       )}
       {low.length > 0 && (
         <p className="notice warn home-notice">Por acabarse: {low.join(', ')}. Revisa Encargado › Inventario.</p>

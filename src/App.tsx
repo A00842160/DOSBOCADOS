@@ -1,4 +1,6 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
+import { currentDay } from './db';
 import MenuScreen from './MenuScreen';
 import EncargadoScreen from './screens/EncargadoScreen';
 import OrderListScreen from './screens/OrderListScreen';
@@ -43,6 +45,7 @@ function title(route: Route): string {
 
 export default function App() {
   const [route, setRoute] = useState<Route>({ name: 'inicio' });
+  const dayOpen = useLiveQuery(async () => Boolean(await currentDay()), [], true);
 
   if (route.name === 'pedido') {
     return (
@@ -88,6 +91,9 @@ export default function App() {
         <h1>DosBocados</h1>
         <StaffPicker />
       </header>
+      {!dayOpen && (
+        <p className="notice warn home-notice">La caja no está abierta. El encargado la abre en Encargado › Caja.</p>
+      )}
       <div className="grid">
         {HOME_TILES.map((tile) => (
           <button key={tile.label} className="tile" onClick={() => setRoute(tile.route)}>

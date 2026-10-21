@@ -1,12 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { DEFAULT_MENU, type Menu } from './domain/menuEdit';
+import { DEFAULT_MENU, upgradeMenu, type Menu } from './domain/menuEdit';
 
 const KEY = 'menu';
 
 export async function loadMenu(): Promise<Menu> {
   const row = await db.settings.get(KEY);
-  return (row?.value as Menu | undefined) ?? DEFAULT_MENU;
+  const stored = row?.value as Menu | undefined;
+  return stored ? upgradeMenu(stored) : DEFAULT_MENU;
 }
 
 /** The menu as the owner left it; the built-in one until it is edited. */

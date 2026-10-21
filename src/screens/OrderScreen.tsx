@@ -14,7 +14,7 @@ import {
   sendToKitchen,
   orderLabel,
   orderTotal,
-  QUICK_MODS,
+  quickModsFor,
   setNotes,
   setQty,
   type Order,
@@ -313,6 +313,11 @@ function LineRow({ line, onQty, onEdit }: { line: OrderLine; onQty: (qty: number
           {line.changed && !line.cancelled && ' · cambió, falta avisar a cocina'}
           {editable && line.qty >= MAX_QTY && ` · máximo ${MAX_QTY}`}
         </span>
+        {!line.cancelled && line.status !== 'salio' && (
+          <span className="line-edit">
+            ✎ {line.mods.length > 0 || line.note ? 'Cambiar' : 'Quitar ingredientes'}
+          </span>
+        )}
       </button>
       <div className="line-qty">
         {editable && (
@@ -349,6 +354,8 @@ function NotesDialog({
   const [mods, setMods] = useState(line.mods);
   const [note, setNote] = useState(line.note);
   const product = findProduct(useMenu(), line.productId);
+  const description = product?.variants.find((v) => v.id === line.variantId)?.description ?? product?.description;
+  const choices = quickModsFor(product?.categoryId, line.mods);
 
   const toggle = (mod: string) => setMods((m) => (m.includes(mod) ? m.filter((x) => x !== mod) : [...m, mod]));
 
@@ -356,9 +363,10 @@ function NotesDialog({
     <div className="overlay" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h2>{line.name}</h2>
-        {product?.description && <p className="product-description">{product.description}</p>}
+        {description && <p className="product-description">Lleva: {description}</p>}
+        <p className="category-note">Toca lo que el cliente quiere cambiar. Cocina lo verá en el pedido.</p>
         <div className="chips">
-          {QUICK_MODS.map((mod) => (
+          {choices.map((mod) => (
             <button key={mod} className={mods.includes(mod) ? 'chip on' : 'chip'} onClick={() => toggle(mod)}>
               {mod}
             </button>

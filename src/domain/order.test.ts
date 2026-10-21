@@ -9,6 +9,8 @@ import {
   markServed,
   newOrder,
   orderTotal,
+  QUICK_MODS,
+  quickModsFor,
   sendToKitchen,
   setNotes,
   setQty,
@@ -104,5 +106,12 @@ describe('kitchen flow', () => {
     const o = cancelOrder(sendToKitchen(addItem(newOrder('llevar'), taco, asada)).order);
     expect(o.cancelledAt).toBeDefined();
     expect(o.lines[0]).toMatchObject({ cancelled: true, changed: true });
+  });
+
+  it('offers papas their own toppings to take off', () => {
+    expect(quickModsFor('papas')).toEqual(['Sin crema', 'Sin cebolla', 'Sin cilantro', 'Sin queso']);
+    expect(quickModsFor('tacos')).toEqual(QUICK_MODS);
+    expect(quickModsFor(undefined, ['Sin guacamole'])).toEqual(QUICK_MODS);
+    expect(quickModsFor('papas', ['Sin guacamole'])).toContain('Sin guacamole');
   });
 });

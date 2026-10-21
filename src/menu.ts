@@ -27,8 +27,8 @@ export interface Category {
 
 export const CATEGORIES: Category[] = [
   { id: 'tacos', name: 'Tacos' },
-  { id: 'tostadas', name: 'Tostadas' },
-  { id: 'volcanes', name: 'Volcanes', note: 'Tortilla de harina, incluyen queso y guacamole' },
+  { id: 'tostadas', name: 'Volcanes', note: 'Tostada con queso y guacamole' },
+  { id: 'volcanes', name: 'Quesadillas', note: 'Tortilla de harina, incluyen queso y guacamole' },
   { id: 'queso', name: 'Queso fundido', note: 'Incluye 3 tortillas de harina' },
   { id: 'papas', name: 'Papas' },
   { id: 'kilos', name: 'Medio kilo / Kilo', note: 'Incluyen tortillas, limones, cebolla, cilantro y salsa' },
@@ -89,18 +89,20 @@ export const PRODUCTS: Product[] = [
       ['Campechano', 25, 'Asada y chistorra con guacamole', true],
     ]),
   ),
-  product('tostadas', 'tostada', 'Tostada', (id) =>
+  // The ids keep their first names (tostada, volcan) so recipes, sold-out marks
+  // and past sales still match after the menu renamed them.
+  product('tostadas', 'tostada', 'Volcán', (id) =>
     variants(id, [
-      ['Asada', 40, 'Queso, carne asada y guacamole'],
-      ['Chistorra', 40, 'Queso, chistorra y guacamole'],
-      ['Campechano', 40, 'Queso, carne asada, chistorra y guacamole', true],
+      ['Asada', 40, 'Tostada con queso, carne asada y guacamole'],
+      ['Chistorra', 40, 'Tostada con queso, chistorra y guacamole'],
+      ['Campechano', 40, 'Tostada con queso, carne asada, chistorra y guacamole', true],
     ]),
   ),
-  product('volcanes', 'volcan', 'Volcán', (id) =>
+  product('volcanes', 'volcan', 'Quesadilla', (id) =>
     variants(id, [
-      ['Asada', 45],
-      ['Chistorra', 50],
-      ['Campechana', 50, undefined, true],
+      ['Asada', 45, 'Tortilla de harina, queso, carne asada y guacamole'],
+      ['Chistorra', 50, 'Tortilla de harina, queso, chistorra y guacamole'],
+      ['Campechana', 50, 'Tortilla de harina, queso, asada, chistorra y guacamole', true],
     ]),
   ),
   product('queso', 'queso-fundido', 'Queso fundido', (id) =>
@@ -113,10 +115,10 @@ export const PRODUCTS: Product[] = [
   ),
   product('papas', 'papas', 'Papas', (id) =>
     variants(id, [
-      ['Asada', 90, 'Puré de papa, queso, carne asada y crema'],
-      ['Chistorra', 95, 'Puré de papa, queso, chistorra y crema'],
-      ['Campechana', 100, 'Puré de papa, queso, asada, chistorra y crema', true],
-      ['Especial', 105, 'Puré de papa, queso, asada, chistorra, tocino y crema', true],
+      ['Asada', 90, 'Puré de papa, queso, carne asada, crema, cebolla y cilantro'],
+      ['Chistorra', 95, 'Puré de papa, queso, chistorra, crema, cebolla y cilantro'],
+      ['Campechana', 100, 'Puré de papa, queso, asada, chistorra, crema, cebolla y cilantro', true],
+      ['Especial', 105, 'Puré de papa, queso, asada, chistorra, tocino, crema, cebolla y cilantro', true],
     ]),
   ),
   product('kilos', 'medio-kilo', 'Medio kilo', (id) =>
@@ -143,7 +145,7 @@ export const PRODUCTS: Product[] = [
     'alambre',
     'Alambre',
     (id) => single(id, 205),
-    'Carne asada con pimiento morrón, cebolla, tocino y queso, 3 tortillas de harina',
+    'Carne asada con pimiento morrón, cebolla, tocino y queso, con 3 tortillas de harina',
   ),
   product('tortas', 'torta', 'Torta', (id) =>
     variants(id, [
@@ -166,7 +168,7 @@ export const PRODUCTS: Product[] = [
   product('extras', 'salsa-extra', 'Salsa extra', (id) => single(id, 15)),
   product('bebidas', 'agua-natural', 'Agua natural', (id) => single(id, 25)),
   product('bebidas', 'refresco', 'Refresco', (id) => variants(id, flavours(['Coca', 'Coca Zero', 'Fresada Peñafiel', 'Piñada Peñafiel', 'Limonada Peñafiel', 'Naranjada Peñafiel'], 30))),
-  product('bebidas', 'agua-fresca', 'Agua fresca', (id) =>
+  product('bebidas', 'agua-fresca', 'Agua de sabor', (id) =>
     variants(
       id,
       flavours(['Maracuyá', 'Limón', 'Jamaica', 'Pepino-limón', 'Horchata'], 30),

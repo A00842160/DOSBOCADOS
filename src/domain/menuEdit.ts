@@ -87,3 +87,52 @@ export function removeProduct(menu: Menu, productId: string): Menu {
 export function findProduct(menu: Menu, productId: string): Product | undefined {
   return menu.products.find((p) => p.id === productId);
 }
+
+// Names and notes the built-in menu used before the October 2026 menu. A stored
+// menu still carrying one of them gets the new text; anything the owner already
+// changed by hand is left alone.
+type CategoryText = Pick<Category, 'name' | 'note'>;
+const RENAMED_CATEGORIES: Record<string, [from: CategoryText, to: Partial<CategoryText>]> = {
+  tostadas: [{ name: 'Tostadas' }, { name: 'Volcanes', note: 'Tostada con queso y guacamole' }],
+  volcanes: [
+    { name: 'Volcanes', note: 'Tortilla de harina, incluyen queso y guacamole' },
+    { name: 'Quesadillas' },
+  ],
+};
+const RENAMED_PRODUCTS: Record<string, [from: string, to: string]> = {
+  tostada: ['Tostada', 'Volcán'],
+  volcan: ['Volcán', 'Quesadilla'],
+  'agua-fresca': ['Agua fresca', 'Agua de sabor'],
+};
+const OLD_DESCRIPTIONS: Record<string, string | undefined> = {
+  'tostada.asada': 'Queso, carne asada y guacamole',
+  'tostada.chistorra': 'Queso, chistorra y guacamole',
+  'tostada.campechano': 'Queso, carne asada, chistorra y guacamole',
+  'volcan.asada': undefined,
+  'volcan.chistorra': undefined,
+  'volcan.campechana': undefined,
+  'papas.asada': 'Puré de papa, queso, carne asada y crema',
+  'papas.chistorra': 'Puré de papa, queso, chistorra y crema',
+  'papas.campechana': 'Puré de papa, queso, asada, chistorra y crema',
+  'papas.especial': 'Puré de papa, queso, asada, chistorra, tocino y crema',
+};
+
+/** Brings a menu stored on the device up to the current built-in names. */
+export function upgradeMenu(menu: Menu): Menu {
+  const builtIn = new Map(PRODUCTS.flatMap((p) => p.variants).map((v) => [v.id, v.description]));
+  const categories = menu.categories.map((c) => {
+    const rename = RENAMED_CATEGORIES[c.id];
+    if (!rename || c.name !== rename[0].name || c.note !== rename[0].note) return c;
+    return { ...c, ...rename[1] };
+  });
+  const products = menu.products.map((p) => {
+    const rename = RENAMED_PRODUCTS[p.id];
+    const variants = p.variants.map((v) =>
+      v.id in OLD_DESCRIPTIONS && v.description === OLD_DESCRIPTIONS[v.id]
+        ? { ...v, description: builtIn.get(v.id) }
+        : v,
+    );
+    return { ...p, name: rename && p.name === rename[0] ? rename[1] : p.name, variants };
+  });
+  return { categories, products };
+}

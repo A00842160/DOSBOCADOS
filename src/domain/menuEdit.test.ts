@@ -9,6 +9,8 @@ import {
   removeVariant,
   renameProduct,
   setPrice,
+  upgradeMenu,
+  type Menu,
 } from './menuEdit';
 
 describe('menu editing', () => {
@@ -47,5 +49,35 @@ describe('menu editing', () => {
     expect(removeVariant(menu, 'cebollitas', only.id)).toEqual(menu);
     expect(renameProduct(menu, 'cebollitas', '  ')).toBe(menu);
     expect(findProduct(renameProduct(menu, 'cebollitas', 'Cebollitas asadas'), 'cebollitas')!.name).toBe('Cebollitas asadas');
+  });
+
+  it('brings a menu saved before the new names up to date, keeping owner edits', () => {
+    const old: Menu = structuredClone(DEFAULT_MENU);
+    const category = (id: string) => old.categories.find((c) => c.id === id)!;
+    category('tostadas').name = 'Tostadas';
+    category('tostadas').note = undefined;
+    category('volcanes').name = 'Volcanes';
+    findProduct(old, 'tostada')!.name = 'Tostada';
+    findProduct(old, 'tostada')!.variants[0].description = 'Queso, carne asada y guacamole';
+    findProduct(old, 'volcan')!.name = 'Volcán';
+    findProduct(old, 'volcan')!.variants.forEach((v) => (v.description = undefined));
+    findProduct(old, 'papas')!.variants[0].description = 'Puré de papa, queso, carne asada y crema';
+    findProduct(old, 'agua-fresca')!.name = 'Agua fresca';
+    old.products = setPrice(old, 'tostada', 'tostada.asada', 42).products;
+    findProduct(old, 'taco')!.name = 'Taquito';
+
+    const menu = upgradeMenu(old);
+    expect(menu.categories.find((c) => c.id === 'tostadas')!.name).toBe('Volcanes');
+    expect(menu.categories.find((c) => c.id === 'volcanes')!.name).toBe('Quesadillas');
+    const tostada = findProduct(menu, 'tostada')!;
+    expect(tostada.name).toBe('Volcán');
+    expect(tostada.variants[0]).toMatchObject({ price: 42, description: 'Tostada con queso, carne asada y guacamole' });
+    expect(findProduct(menu, 'volcan')!.name).toBe('Quesadilla');
+    expect(findProduct(menu, 'volcan')!.variants[0].description).toMatch(/^Tortilla de harina/);
+    expect(findProduct(menu, 'papas')!.variants[0].description).toMatch(/crema, cebolla y cilantro$/);
+    expect(findProduct(menu, 'agua-fresca')!.name).toBe('Agua de sabor');
+    expect(findProduct(menu, 'taco')!.name).toBe('Taquito');
+    expect(upgradeMenu(menu)).toEqual(menu);
+    expect(upgradeMenu(DEFAULT_MENU)).toEqual(DEFAULT_MENU);
   });
 });

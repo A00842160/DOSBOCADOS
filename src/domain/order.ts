@@ -77,6 +77,17 @@ export const TABLES = [1, 2, 3, 4, 5, 6];
 
 export const QUICK_MODS = ['Sin cebolla', 'Sin guacamole', 'Sin cilantro', 'Sin salsa', 'Sin queso', 'Bien dorado'];
 
+// Dishes whose toppings differ from a taco's get their own quick choices.
+const MODS_BY_CATEGORY: Record<string, string[]> = {
+  papas: ['Sin crema', 'Sin cebolla', 'Sin cilantro', 'Sin queso'],
+};
+
+/** Quick choices for a dish, plus any it already carries so they can be undone. */
+export function quickModsFor(categoryId: string | undefined, current: string[] = []): string[] {
+  const base = (categoryId && MODS_BY_CATEGORY[categoryId]) || QUICK_MODS;
+  return [...base, ...current.filter((m) => !base.includes(m))];
+}
+
 /** Most of one dish a single line can hold; guards against a stuck + button. */
 export const MAX_QTY = 99;
 

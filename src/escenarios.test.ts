@@ -1,7 +1,7 @@
 // Service scenarios from the October 2026 test report, run against the real
 // database layer (IndexedDB faked in memory).
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CajaCerrada, db, mutateOrder, saveOrder, startDay } from './db';
 import { closeDay, corte, openDay } from './domain/cash';
 import { addItem, canCancelOrder, cancelOrder, MAX_QTY, markServed, newOrder, ownerCancelLine, sendToKitchen, setQty, type Order } from './domain/order';
@@ -22,6 +22,15 @@ const cash = (amount: number) => (o: Order) => addPayment(o, { method: 'efectivo
 async function corteOf(dayId: string) {
   return corte((await db.days.get(dayId))!, await db.orders.toArray());
 }
+
+// Every step gets its own millisecond, as it does when a person taps through
+// the app; otherwise a fast machine can close one day and open the next at the
+// same instant and the scenarios turn flaky.
+beforeAll(() => {
+  const realNow = Date.now.bind(Date);
+  let last = 0;
+  vi.spyOn(Date, 'now').mockImplementation(() => (last = Math.max(realNow(), last + 1)));
+});
 
 beforeEach(async () => {
   await Promise.all([db.orders.clear(), db.days.clear()]);
